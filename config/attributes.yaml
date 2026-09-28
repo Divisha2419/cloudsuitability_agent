@@ -1,0 +1,386 @@
+# Attributes collected for each application, grouped into the screens the
+# interface shows. This file is the single source of truth for the intake
+# form, input validation, batch-upload columns and the scoring engine.
+#
+# Field keys:
+#   id        stable identifier (used in the API, batch CSV/Excel columns and scoring)
+#   label     text shown to the user
+#   type      select | text | textarea
+#   required  must be answered before leaving the section (only while visible)
+#   options   for select fields: value (stored) + label (shown); batch uploads accept either
+#   help      tooltip text shown next to the label
+#   show_if   field is visible only when another field has one of the listed values
+#   origin    "instructions" = listed in prompts/system_prompt.md intake steps;
+#             "added" = not in the intake steps, but required by the hard filters,
+#             scoring or behaviour rules in that same document. Review these.
+
+steps:
+  - id: application_info
+    label: Application Info
+    sections: [application_info]
+  - id: business
+    label: Business Attributes
+    sections: [business]
+  - id: technical
+    label: Technical Attributes
+    sections: [tech_architecture, tech_infrastructure, tech_operational]
+  - id: results
+    label: Results
+    sections: []
+
+sections:
+  - id: application_info
+    title: Application Info
+    description: Tell us which application is being assessed and who owns it.
+    fields:
+      - id: app_name
+        label: Application Name
+        type: text
+        required: true
+        help: The commonly used name of the application.
+        origin: instructions
+      - id: app_id
+        label: Application ID
+        type: text
+        required: false
+        help: Identifier from the application inventory / CMDB, if one exists.
+        origin: instructions
+      - id: app_description
+        label: Application Description
+        type: textarea
+        required: true
+        help: What the application does and which business process it supports.
+        origin: instructions
+      - id: app_manager
+        label: Application Manager Name
+        type: text
+        required: true
+        help: The person accountable for the application; shown as "Assessed by" in the report.
+        origin: instructions
+      - id: geography
+        label: Geography of Deployment
+        type: text
+        required: true
+        help: Countries, regions or sites where the application is deployed and used.
+        origin: instructions
+
+  - id: business
+    title: Business Attributes
+    description: How important the application is to the business and what it must guarantee.
+    fields:
+      - id: business_criticality
+        label: Business Criticality
+        type: select
+        required: true
+        help: The impact on the business if the application becomes unavailable.
+        origin: instructions
+        options:
+          - {value: Mission Critical, label: "Mission Critical (24*7 – production stops)"}
+          - {value: High, label: "High (impact within hours)"}
+          - {value: Medium, label: "Medium (impact after 2–3 days)"}
+          - {value: Low, label: "Low (impact after more than a week)"}
+      - id: rto
+        label: RTO Requirements
+        type: select
+        required: true
+        help: Recovery Time Objective — the maximum acceptable time to restore the application after an outage.
+        origin: instructions
+        options:
+          - {value: Platinum, label: "Platinum (0–2 hours)"}
+          - {value: Gold, label: "Gold (up to 24 hours)"}
+          - {value: Silver, label: "Silver (<5 days)"}
+          - {value: Bronze, label: "Bronze (best endeavour)"}
+      - id: rpo
+        label: RPO Requirements
+        type: select
+        required: true
+        help: Recovery Point Objective — the maximum acceptable amount of data loss, measured in time.
+        origin: instructions
+        options:
+          - {value: Platinum, label: "Platinum (close to zero)"}
+          - {value: Gold, label: "Gold (up to 1 hour)"}
+          - {value: Silver, label: "Silver (1–4 hours)"}
+          - {value: Bronze, label: "Bronze (last available backup)"}
+      - id: high_availability
+        label: High Availability
+        type: select
+        required: false
+        help: Whether the application must keep running through component or site failures.
+        origin: instructions
+        options:
+          - {value: HA, label: "HA (Multi-Site, Failover, Backup, No Interruptions)"}
+          - {value: No HA, label: "No HA"}
+      - id: dr_requirements
+        label: DR Requirements
+        type: select
+        required: false
+        help: Disaster recovery setup — Active-Active runs in two sites at once; Active-Passive keeps a standby site.
+        origin: instructions
+        options:
+          - {value: Active-Active, label: Active-Active}
+          - {value: Active-Passive, label: Active-Passive}
+          - {value: No DR, label: No DR}
+      - id: user_type
+        label: Internal or External Users
+        type: select
+        required: false
+        help: Whether the application is used by employees, by customers/partners, or both.
+        origin: instructions
+        options:
+          - {value: Internal, label: Internal}
+          - {value: External, label: External}
+          - {value: Both, label: Both}
+      - id: user_base
+        label: Total User Base
+        type: select
+        required: false
+        help: Approximate number of distinct users.
+        origin: instructions
+        options:
+          - {value: "0-49", label: "0–49"}
+          - {value: "50-99", label: "50–99"}
+          - {value: "100-499", label: "100–499"}
+          - {value: "500-999", label: "500–999"}
+          - {value: "1000+", label: "1000+"}
+      - id: regulatory
+        label: Regulatory & Contractual Requirements
+        type: textarea
+        required: false
+        help: Regulations, contracts or policies that constrain where and how data is processed.
+        placeholder: e.g. Processes PII data, GDPR, data residency constraints
+        origin: instructions
+
+  - id: tech_architecture
+    title: Technical Attributes — Architecture
+    description: How the application is built and where it is in its lifecycle.
+    fields:
+      - id: app_status
+        label: App Status / Lifecycle Stage
+        type: select
+        required: true
+        help: The current lifecycle stage of the application.
+        origin: instructions
+        options:
+          - {value: Dev/Testing phase, label: Dev/Testing phase}
+          - {value: In production, label: In production}
+          - {value: To be decommissioned, label: To be decommissioned}
+          - {value: Retired, label: Retired}
+          - {value: Inactive, label: Inactive}
+      - id: app_roadmap
+        label: Application Roadmap
+        type: select
+        required: true
+        help: What is already planned for the application.
+        origin: instructions
+        options:
+          - {value: No change planned, label: No change planned}
+          - {value: Migration to SaaS/PaaS planned, label: Migration to SaaS/PaaS planned}
+          - {value: To be decommissioned, label: To be decommissioned}
+          - {value: Replaced by new application, label: Replaced by new application}
+          - {value: Upgrade/modernisation planned, label: Upgrade/modernisation planned}
+      - id: app_type
+        label: Application Type
+        type: select
+        required: false
+        help: The broad category of the application.
+        origin: instructions
+        options:
+          - {value: Industrial Automation, label: Industrial Automation}
+          - {value: Manufacturing Operations Management, label: Manufacturing Operations Management}
+          - {value: Business Application, label: Business Application}
+      - id: cots_or_custom
+        label: COTS or Custom
+        type: select
+        required: true
+        help: COTS = commercial off-the-shelf product; Inhouse built = custom developed; Customised COTS = a product with significant custom extensions.
+        origin: instructions
+        options:
+          - {value: COTS, label: COTS}
+          - {value: Inhouse built, label: Inhouse built}
+          - {value: Customised COTS, label: Customised COTS}
+      - id: cots_details
+        label: COTS App Name, Version and Vendor
+        type: text
+        required: false
+        help: Product name, version and vendor of the commercial software.
+        placeholder: e.g. SAP ECC 6.0, SAP
+        origin: instructions
+        show_if: {field: cots_or_custom, in: [COTS, Customised COTS]}
+      - id: saas_equivalent
+        label: Vendor Offers a SaaS Equivalent
+        type: select
+        required: false
+        help: Whether the vendor sells a SaaS or cloud-hosted version of this product. Used by the 6R "Replace" rule.
+        origin: added
+        options:
+          - {value: "Yes", label: "Yes"}
+          - {value: "No", label: "No"}
+          - {value: Unknown, label: Unknown}
+        show_if: {field: cots_or_custom, in: [COTS, Customised COTS]}
+      - id: architecture
+        label: Application Architecture
+        type: select
+        required: true
+        help: Monolithic = one deployable unit; SOA = a set of coarse-grained services; Microservices = many small independently deployable services.
+        origin: instructions
+        options:
+          - {value: Monolithic, label: Monolithic Architecture}
+          - {value: SOA, label: Service Oriented Architecture (SOA)}
+          - {value: Microservices, label: Microservices Architecture}
+      - id: coupling
+        label: Application Coupling
+        type: select
+        required: true
+        help: How strongly the application depends on other applications (shared databases, synchronous calls, file drops). Used in the Cloud Native Score.
+        origin: added
+        options:
+          - {value: Independent, label: Independent}
+          - {value: Loosely coupled, label: Loosely coupled}
+          - {value: Tightly coupled, label: Tightly coupled}
+      - id: app_state
+        label: Application State
+        type: select
+        required: true
+        help: Stateless = no session or local data kept on the server between requests; Stateful = it is. Used in the Cloud Native Score.
+        origin: added
+        options:
+          - {value: Stateless, label: Stateless}
+          - {value: Stateful, label: Stateful}
+      - id: source_code
+        label: Source Code Available
+        type: select
+        required: false
+        help: Whether the organisation has access to the application's source code.
+        origin: instructions
+        options:
+          - {value: "Yes", label: "Yes"}
+          - {value: "No", label: "No"}
+          - {value: Partial, label: Partial or limited access}
+          - {value: NA, label: NA}
+      - id: programming_language
+        label: Programming Language and Version
+        type: text
+        required: false
+        help: Main language and version of the custom code. Not needed for COTS applications.
+        placeholder: e.g. Java 17, .NET 6, Python 3.11
+        origin: instructions
+        show_if: {field: cots_or_custom, in: [Inhouse built, Customised COTS]}
+
+  - id: tech_infrastructure
+    title: Technical Attributes — Infrastructure
+    description: What the application runs on and what it depends on.
+    fields:
+      - id: hardware_dependency
+        label: Application Hardware Dependency
+        type: select
+        required: true
+        help: Whether the application depends on specific physical hardware such as OT devices, dongles or instruments.
+        origin: instructions
+        options:
+          - {value: "Yes", label: "Yes"}
+          - {value: "No", label: "No"}
+      - id: hardware_details
+        label: Hardware Details
+        type: textarea
+        required: false
+        help: Describe the hardware the application depends on.
+        placeholder: OT devices, PLCs, sensors, DCS, CNC, SCADA, robots
+        origin: instructions
+        show_if: {field: hardware_dependency, in: ["Yes"]}
+      - id: proximity_to_equipment
+        label: Proximity to Physical Equipment Required
+        type: select
+        required: true
+        help: Whether the application must run physically close to the equipment it controls or reads from. Hard filter together with hardware dependency.
+        origin: added
+        options:
+          - {value: "Yes", label: "Yes"}
+          - {value: "No", label: "No"}
+        show_if: {field: hardware_dependency, in: ["Yes"]}
+      - id: mainframe_dependency
+        label: Mainframe Dependency
+        type: select
+        required: true
+        help: Whether the application runs on, or depends on, a mainframe. Hard filter and Cloud Native Score input.
+        origin: added
+        options:
+          - {value: "Yes", label: "Yes"}
+          - {value: "No", label: "No"}
+      - id: environments
+        label: Number of Environments
+        type: text
+        required: false
+        help: Count of production and non-production environments.
+        placeholder: e.g. 3 (Prod, QA, Dev)
+        origin: instructions
+      - id: operating_system
+        label: Operating System and Version
+        type: text
+        required: true
+        help: Server operating system and version the application runs on.
+        placeholder: e.g. Windows Server 2022, RHEL 8.6, Ubuntu 22.04
+        origin: instructions
+      - id: database
+        label: Database Name and Version
+        type: text
+        required: true
+        help: Database product and version. Enter "None" if the application uses no database or only flat files.
+        placeholder: e.g. MS SQL Server 2019, PostgreSQL 14, Oracle 19c
+        origin: instructions
+      - id: app_server
+        label: App/Web Server Name and Version
+        type: text
+        required: false
+        help: Application or web server and version. Enter "None" if there is no web server.
+        placeholder: e.g. IIS 10, Apache Tomcat 9, Nginx 1.24
+        origin: instructions
+
+  - id: tech_operational
+    title: Technical Attributes — Operational
+    description: How the application behaves in operation and what currently hurts.
+    fields:
+      - id: latency
+        label: Latency Requirement
+        type: select
+        required: true
+        help: The response time the application needs between its users or devices and the server.
+        origin: instructions
+        options:
+          - {value: Ultra Low, label: "Ultra Low Latency (<10 ms)"}
+          - {value: Low, label: "Low Latency (10–100 ms)"}
+          - {value: Standard, label: "Standard (>100 ms)"}
+          - {value: Not sensitive, label: "Not latency sensitive"}
+      - id: real_time_decisioning
+        label: Real-Time Decisioning
+        type: select
+        required: true
+        help: Whether the application makes automated decisions that must happen immediately (e.g. control loops).
+        origin: instructions
+        options:
+          - {value: "Yes", label: "Yes"}
+          - {value: "No", label: "No"}
+      - id: ip_sensitive_data
+        label: IP-Sensitive Data
+        type: select
+        required: false
+        help: Whether the application stores or processes intellectual property such as designs, formulas or source code.
+        origin: instructions
+        options:
+          - {value: "Yes", label: "Yes"}
+          - {value: "No", label: "No"}
+      - id: safety_critical_ot
+        label: Safety-Critical OT Application
+        type: select
+        required: true
+        help: Whether this is a safety-critical operational technology application (e.g. IEC 61508 certified). If Yes, any cloud recommendation is flagged for a dedicated OT cloud security review.
+        origin: added
+        options:
+          - {value: "Yes", label: "Yes"}
+          - {value: "No", label: "No"}
+      - id: current_challenges
+        label: Current Challenges
+        type: textarea
+        required: false
+        help: Pain points with the current on-premise setup.
+        placeholder: e.g. ageing hardware, slow provisioning, high licence cost
+        origin: instructions

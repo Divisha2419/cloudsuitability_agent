@@ -1,0 +1,148 @@
+# Phase 3 — Cloud Native Score, score bands and 6R text
+# (from "Phase 3" in prompts/system_prompt.md).
+#
+# Each dimension scores points from either an attribute answer
+# (source: attribute) or a Phase 2 component rating (source: phase2).
+# An unanswered attribute scores 0 until it is filled in.
+
+dimensions:
+  - id: architecture
+    label: Application Architecture
+    short: Architecture
+    weight: 15
+    source: attribute
+    attribute: architecture
+    points: {Microservices: 15, SOA: 10, Monolithic: 3}
+  - id: coupling
+    label: Application Coupling
+    short: Coupling
+    weight: 10
+    source: attribute
+    attribute: coupling
+    points: {Independent: 10, Loosely coupled: 7, Tightly coupled: 2}
+  - id: state
+    label: Application State
+    short: State
+    weight: 8
+    source: attribute
+    attribute: app_state
+    points: {Stateless: 8, Stateful: 3}
+  - id: hardware
+    label: Hardware Dependency
+    short: Hardware Dependency
+    weight: 12
+    source: attribute
+    attribute: hardware_dependency
+    points: {"No": 12, "Yes": 0}
+  - id: latency
+    label: Latency Requirement
+    short: Latency
+    weight: 10
+    source: attribute
+    attribute: latency
+    points: {Not sensitive: 10, Standard: 8, Low: 4, Ultra Low: 0}
+  - id: os
+    label: OS Compatibility (Phase 2)
+    short: OS Compatibility
+    weight: 10
+    source: phase2
+    component: operating_system
+    points: {cloud_ready: 10, needs_upgrade: 5, not_suitable: 0}
+  - id: db
+    label: Database Compatibility (Phase 2)
+    short: DB Compatibility
+    weight: 10
+    source: phase2
+    component: database
+    points: {cloud_ready: 10, needs_upgrade: 5, not_suitable: 0}
+  - id: language
+    label: Language Compatibility (Phase 2)
+    short: Language Compat.
+    weight: 8
+    source: phase2
+    component: programming_language
+    points: {cloud_ready: 8, needs_upgrade: 4, not_suitable: 0, na: 8}
+  - id: app_server
+    label: App Server Compatibility (Phase 2)
+    short: App Server Compat.
+    weight: 7
+    source: phase2
+    component: app_server
+    points: {cloud_ready: 7, needs_upgrade: 3, not_suitable: 0, na: 7}
+  - id: source_code
+    label: Source Code Availability
+    short: Source Code Avail.
+    weight: 5
+    source: attribute
+    attribute: source_code
+    points: {"Yes": 5, Partial: 3, "No": 0, NA: 0}
+  - id: mainframe
+    label: Mainframe Dependency
+    short: Mainframe
+    weight: 5
+    source: attribute
+    attribute: mainframe_dependency
+    points: {"No": 5, "Yes": 0}
+
+# Checked top-down; the first band whose min the score reaches is used.
+bands:
+  - {min: 80, label: High Cloud Readiness, level: high}
+  - {min: 60, label: Medium Cloud Readiness, level: medium}
+  - {min: 40, label: Low Cloud Readiness, level: low}
+  - {min: 0, label: Very Low / Not Recommended for Cloud, level: very_low}
+
+phase2_overall:
+  fully_ready: Fully Cloud Ready
+  conditional: Conditionally Cloud Ready
+  not_suitable: Not Cloud Suitable
+
+# 6R definitions and suggested next steps shown in the report.
+six_r:
+  rehost:
+    label: Rehost
+    headline: REHOST
+    definition: Move as-is to cloud (lift & shift). Minimal changes.
+    next_steps:
+      - Size target cloud VMs from current utilisation and pick a landing zone.
+      - Plan the migration wave and cut-over window with the application manager.
+      - Replicate servers with a lift-and-shift tool (e.g. Azure Migrate) and run acceptance tests.
+  replatform:
+    label: Replatform
+    headline: REPLATFORM
+    definition: Minor optimizations to benefit from cloud (e.g., managed DB, OS upgrade). No core code change.
+    next_steps:
+      - Upgrade the components rated "Needs Upgrade" to supported versions.
+      - Evaluate managed services for the database and web tier (e.g. Azure SQL, App Service).
+      - Re-test the application on the upgraded stack before migrating.
+  refactor:
+    label: Refactor
+    headline: REFACTOR
+    definition: Re-architect the application to be cloud-native (e.g., break monolith, containerize).
+    next_steps:
+      - Run an architecture review to identify service boundaries and shared state.
+      - Containerise the application and externalise session state and configuration.
+      - Build a business case comparing the refactor effort with replacing the application.
+  retire:
+    label: Retire
+    headline: RETIRE
+    definition: Decommission the application. No migration needed.
+    next_steps:
+      - Confirm the decommission date and owner with the business.
+      - Archive data according to retention and regulatory requirements.
+      - Remove the application from the migration scope and release its infrastructure.
+  replace:
+    label: Replace
+    headline: REPLACE
+    definition: Swap with a SaaS or cloud-native alternative.
+    next_steps:
+      - Confirm the vendor's SaaS offering covers the functionality and customisations in use.
+      - Plan data migration and integrations to the SaaS product.
+      - Align the switch-over with the current licence and support renewal dates.
+  retain:
+    label: Retain
+    headline: RETAIN ON-PREMISE
+    definition: Keep on-premise. Not suitable or not yet ready for cloud.
+    next_steps:
+      - Keep the application on-premise and review it again at the next roadmap cycle.
+      - Address the blockers listed under Key Risks & Flags to make a future migration possible.
+      - Consider hybrid or edge options for connecting it to cloud-hosted systems.

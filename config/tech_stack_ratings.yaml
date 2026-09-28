@@ -1,0 +1,83 @@
+# Phase 2 — Tech Stack Cloud Suitability lookup tables
+# (from "Phase 2" in prompts/system_prompt.md).
+#
+# Each component is rated from the user's free-text answer:
+#   1. The text is lower-cased, "microsoft" becomes "ms", and it is split into
+#      parts on "," ";" "+" "&" and " and " (e.g. "Java 17, VB6" -> two parts).
+#   2. Each part is matched against the rules below in order; the first rule
+#      whose regex matches (anywhere in the part) wins.
+#   3. The component gets the worst rating among its parts.
+#   4. A part that matches no rule is rated needs_upgrade and flagged
+#      "verification required" (behaviour rule 3).
+#
+# Ratings: cloud_ready | needs_upgrade | not_suitable | na
+# Regexes use Python syntax; keep them in single quotes.
+
+ratings:
+  cloud_ready: Cloud Ready
+  needs_upgrade: Needs Upgrade
+  not_suitable: Not Cloud Suitable
+  na: N/A
+
+components:
+  operating_system:
+    label: Operating System
+    rules:
+      - {label: Proprietary / Embedded OS, pattern: 'embedded|proprietary|vxworks|\bqnx\b|\brtos\b|windows\s*(ce|iot|xp\s*embedded)', rating: not_suitable}
+      - {label: "Windows Server 2019, 2022", pattern: 'win(dows)?(\s*server)?\s*20(19|22)\b', rating: cloud_ready}
+      - {label: Windows Server 2016, pattern: 'win(dows)?(\s*server)?\s*2016\b', rating: cloud_ready}
+      - {label: Windows Server 2012 / 2012 R2, pattern: 'win(dows)?(\s*server)?\s*2012\b', rating: needs_upgrade, detail: end of support}
+      - {label: Windows Server 2008 or earlier, pattern: 'win(dows)?(\s*server)?\s*(2008|2003|2000|nt)\b', rating: not_suitable}
+      - {label: "RHEL 7, 8, 9", pattern: '(rhel|red\s*hat(\s*enterprise)?(\s*linux)?)\s*[789]\b', rating: cloud_ready}
+      - {label: "CentOS Stream 8, 9", pattern: 'centos\s*stream\s*[89]\b', rating: cloud_ready}
+      - {label: "Ubuntu 20.04, 22.04, 24.04 LTS", pattern: 'ubuntu\s*(20|22|24)\.04', rating: cloud_ready}
+      - {label: SUSE Linux Enterprise 15, pattern: '(sles|suse(\s*linux)?(\s*enterprise)?(\s*server)?)\s*15\b', rating: cloud_ready}
+      - {label: SUSE Linux Enterprise 12 or earlier, pattern: '(sles|suse(\s*linux)?(\s*enterprise)?(\s*server)?)\s*([1-9]|1[0-2])\b', rating: needs_upgrade}
+      - {label: Generic GNU/Linux (unknown version), pattern: '\blinux\b|\bgnu\b', rating: needs_upgrade, detail: version verification required}
+
+  database:
+    label: Database
+    rules:
+      - {label: No database / flat files, pattern: '^(none|no\s*(database|db)|n/?a)$|flat\s*files?', rating: cloud_ready}
+      - {label: Unknown / not provided, pattern: '^(unknown|not\s*(known|provided)|tbd|\?+)$', rating: needs_upgrade, detail: flagged for verification}
+      - {label: "MS SQL Server 2016, 2017, 2019, 2022", pattern: '(mssql|ms\s*sql|sql\s*server)\D*(2016|2017|2019|2022)\b', rating: cloud_ready}
+      - {label: "MS SQL Server 2012, 2014", pattern: '(mssql|ms\s*sql|sql\s*server)\D*(2012|2014)\b', rating: needs_upgrade}
+      - {label: MS SQL Server 2008 or earlier, pattern: '(mssql|ms\s*sql|sql\s*server)\D*(2008|2005|2000)\b', rating: not_suitable}
+      - {label: PostgreSQL 12+, pattern: '(postgres(ql)?|pgsql)\s*(1[2-9]|[2-9]\d)\b', rating: cloud_ready}
+      - {label: PostgreSQL < 12, pattern: '(postgres(ql)?|pgsql)\s*([1-9]|1[01])\b', rating: needs_upgrade}
+      - {label: "MySQL 5.7, 8.x", pattern: 'mysql\s*(5\.7|8)\b', rating: cloud_ready}
+      - {label: "Oracle 19c, 21c", pattern: 'oracle\s*(db|database)?\s*(19|21)c?\b', rating: cloud_ready}
+      - {label: Oracle 12c or earlier, pattern: 'oracle\s*(db|database)?\s*([89]|1[0-2])[cgi]?\b', rating: needs_upgrade}
+      - {label: MongoDB 4.4+, pattern: 'mongo(db)?\s*(4\.4|[5-9]|\d{2})\b', rating: cloud_ready}
+      - {label: SQLite, pattern: 'sqlite', rating: needs_upgrade, detail: not suitable for cloud-scale}
+      - {label: MS Access, pattern: '\bms\s*access\b|^access\b|\baccess\s*(db|database)\b', rating: not_suitable}
+
+  programming_language:
+    label: Programming Language
+    rules:
+      - {label: "Java 8, 11, 17, 21", pattern: 'java\s*(se\s*)?(1\.8|8|11|17|21)\b', rating: cloud_ready}
+      - {label: Java 6 or earlier, pattern: 'java\s*(se\s*)?(1\.[1-6]|[1-6])\b', rating: needs_upgrade}
+      - {label: ".NET 6, 7, 8 (Core)", pattern: '(\.net|dotnet)\s*(core\s*)?[678]\b', rating: cloud_ready}
+      - {label: .NET 4.x (Framework), pattern: '(\.net|dotnet)\s*(framework\s*)?4\b', rating: needs_upgrade}
+      - {label: .NET 2.x or 3.x, pattern: '(\.net|dotnet)\s*(framework\s*)?[23]\b', rating: not_suitable}
+      - {label: Python 3.8+, pattern: 'python\s*3\.([89]|\d{2})\b', rating: cloud_ready}
+      - {label: Python 2.x, pattern: 'python\s*2\b', rating: needs_upgrade}
+      - {label: Node.js 16+, pattern: 'node(\.?js)?\s*v?(1[6-9]|[2-9]\d)\b', rating: cloud_ready}
+      - {label: Visual Basic 6 (VB6), pattern: '\bvb\s*6\b|visual\s*basic\s*6\b', rating: not_suitable}
+      - {label: "COBOL, Fortran", pattern: '\b(cobol|fortran)\b', rating: not_suitable}
+      - {label: "Go, Rust, Kotlin, TypeScript (modern)", pattern: '^(go|golang|rust|kotlin|typescript)\b|\b(golang|rust|kotlin|typescript)\b', rating: cloud_ready}
+      - {label: PowerShell / Bash scripts only, pattern: '\b(powershell|bash|shell\s*scripts?)\b', rating: cloud_ready}
+
+  app_server:
+    label: App/Web Server
+    rules:
+      - {label: No web server, pattern: '^(none|no(\s*(web|app))?(\s*/?\s*(web|app))?\s*server|n/?a)$', rating: na}
+      - {label: "IIS 8.5, 10", pattern: '\biis\s*(8\.5|10)\b', rating: cloud_ready}
+      - {label: IIS 7 or earlier, pattern: '\biis\s*[1-7]\b', rating: needs_upgrade}
+      - {label: "Apache Tomcat 9, 10", pattern: 'tomcat\s*(9|10)\b', rating: cloud_ready}
+      - {label: "Apache Tomcat 7, 8", pattern: 'tomcat\s*[78]\b', rating: needs_upgrade}
+      - {label: Nginx 1.18+, pattern: 'nginx\s*1\.(1[89]|[2-9]\d)\b', rating: cloud_ready}
+      - {label: Apache HTTP 2.4, pattern: '(apache|httpd)(\s*http[d]?)?(\s*server)?\s*2\.4\b', rating: cloud_ready}
+      - {label: "WebLogic, JBoss EAP 7+", pattern: '\bweblogic\b|jboss(\s*eap)?\s*([7-9]|\d{2})\b', rating: cloud_ready}
+      - {label: WebSphere 9+, pattern: 'websphere\D*(9|\d{2})\b', rating: cloud_ready}
+      - {label: WebSphere 8 or earlier, pattern: 'websphere\D*[1-8]\b', rating: needs_upgrade}

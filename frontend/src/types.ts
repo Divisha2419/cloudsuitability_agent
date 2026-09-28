@@ -1,0 +1,127 @@
+// Shapes returned by the FastAPI backend (backend/cloudsuit).
+
+export type Answers = Record<string, string>;
+
+export interface Option {
+  value: string;
+  label: string;
+}
+
+export interface Field {
+  id: string;
+  label: string;
+  type: "select" | "text" | "textarea";
+  required?: boolean;
+  help?: string;
+  placeholder?: string;
+  options?: Option[];
+  show_if?: { field: string; in: string[] };
+  origin?: "instructions" | "added";
+}
+
+export interface Section {
+  id: string;
+  title: string;
+  description?: string;
+  fields: Field[];
+}
+
+export interface Step {
+  id: string;
+  label: string;
+  sections: string[];
+}
+
+export interface Schema {
+  steps: Step[];
+  sections: Section[];
+}
+
+export type Rating = "cloud_ready" | "needs_upgrade" | "not_suitable" | "na";
+export type SixR = "rehost" | "replatform" | "refactor" | "retire" | "replace" | "retain";
+
+export interface Band {
+  min: number;
+  label: string;
+  level: "high" | "medium" | "low" | "very_low";
+}
+
+export interface Result {
+  application: { name: string; id: string; manager: string; date: string };
+  complete: boolean;
+  missing_required: string[];
+  errors: Record<string, string>;
+  answers: Answers;
+  phase1: {
+    triggered: boolean;
+    status: "PASS" | "TRIGGERED";
+    filters: { id: string; reason: string; outcome: string; recommendation: SixR }[];
+  };
+  phase2: {
+    components: {
+      id: string;
+      label: string;
+      input: string;
+      rating: Rating;
+      rating_label: string;
+      matched: string;
+      detail: string;
+      verification_required: boolean;
+    }[];
+    overall: "fully_ready" | "conditional" | "not_suitable";
+    overall_label: string;
+  };
+  phase3: {
+    dimensions: { id: string; label: string; short: string; weight: number; score: number; answer: string; answered: boolean }[];
+    total: number;
+    max: number;
+    band: Band;
+  };
+  recommendation: {
+    code: SixR;
+    label: string;
+    headline: string;
+    definition: string;
+    rule: number;
+    rationale: string[];
+    next_steps: string[];
+    notes: string[];
+  };
+  risks: { severity: "high" | "medium" | "low"; message: string }[];
+  six_r_definitions: Record<SixR, string>;
+}
+
+export interface Summary {
+  id: number;
+  app_name: string;
+  app_id: string;
+  manager: string;
+  score: number;
+  band: Band;
+  phase1: string;
+  phase2: string;
+  phase2_overall: string;
+  recommendation: SixR;
+  recommendation_headline: string;
+  updated_at: string;
+}
+
+export interface BatchRow {
+  row: number;
+  app_name: string;
+  errors: Record<string, string>;
+  saved_id: number | null;
+  score: number;
+  band: Band;
+  phase1: string;
+  phase2: string;
+  recommendation: SixR;
+  recommendation_headline: string;
+}
+
+export interface BatchResponse {
+  total: number;
+  assessed: number;
+  ranked: BatchRow[];
+  rejected: BatchRow[];
+}

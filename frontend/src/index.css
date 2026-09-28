@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-50: #eef4fb;
+  --color-brand-100: #d6e4f5;
+  --color-brand-600: #2b5d97;
+  --color-brand-700: #1f4a7c;
+  --color-brand-900: #1f3a5f;
+  /* Status colours (good / warning / serious / critical) — always paired with an icon and label. */
+  --color-good: #0ca30c;
+  --color-warning: #fab219;
+  --color-serious: #ec835a;
+  --color-critical: #d03b3b;
+}
+
+body {
+  @apply bg-slate-50 text-slate-800 antialiased;
+}
