@@ -14,19 +14,28 @@ The full agent instructions are in [`prompts/system_prompt.md`](prompts/system_p
 
 ## Running it
 
-Requirements: Python 3.11+ and Node.js 22.12+ (the frontend build tools do not work on older Node versions).
+Requirement: Python 3.11+ (Node.js is **not** needed just to run the app — the built web UI is committed in `frontend/dist/`).
 
 ```bash
-# Backend (API on http://localhost:8000)
-python -m venv .venv && . .venv/bin/activate
+python -m venv .venv
+. .venv/bin/activate            # Windows PowerShell: .venv\Scripts\Activate.ps1
 pip install -r backend/requirements-dev.txt
-cd backend && uvicorn cloudsuit.api:app --reload
-
-# Frontend, in a second terminal (UI on http://localhost:5173, proxies /api to :8000)
-cd frontend && npm install && npm run dev
+cd backend && uvicorn cloudsuit.api:app
 ```
 
-For a single-server setup, run `npm run build` in `frontend/`. Uvicorn then serves the built UI at http://localhost:8000.
+Open http://localhost:8000.
+
+The UI works in Chrome/Edge 109+ and Firefox 115+, so it also runs on Windows 7/8.1.
+
+### Changing the web UI (developers only)
+
+This needs Node.js 22.12+ (Windows 10 or newer).
+
+```bash
+cd frontend && npm install
+npm run dev      # http://localhost:5173, proxies /api to the backend on :8000
+npm run build    # rebuilds frontend/dist — commit it together with your source changes
+```
 
 Saved assessments go to `data/assessments.db` (SQLite). To use PostgreSQL instead, set `DATABASE_URL` (for example `postgresql+psycopg://user:pass@host/db`) and install a driver such as `psycopg[binary]`.
 

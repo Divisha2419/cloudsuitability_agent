@@ -25,7 +25,7 @@ backend/cloudsuit/              Python package (FastAPI)
   storage.py     SQLAlchemy store for saved assessments (SQLite default, DATABASE_URL for Postgres)
   api.py         HTTP API; also serves frontend/dist when built
 backend/tests/                  pytest suite (engine rules + API)
-frontend/                       React 19 + TypeScript + Vite + Tailwind v4 UI
+frontend/                       React 19 + TypeScript + Vite + Tailwind v3 UI (built output committed in frontend/dist)
 examples/sample_applications.csv  one application per 6R outcome (also used by a test)
 ```
 
@@ -56,6 +56,8 @@ cd frontend && npm run build
 - **The 6R rules** live in `engine.recommend()` in the priority order from the instructions (first match wins). Rule `0` is a fallback for a gap in the specified rules.
 - **Fields marked `origin: added`** in `attributes.yaml` (coupling, state, mainframe, proximity, SaaS equivalent, safety-critical OT) are not in the intake steps of the instructions. They are needed by its scoring, hard-filter or behaviour rules. The UI labels them "scoring input".
 - Hidden fields (`show_if` not met) are dropped from answers before scoring and saving.
+- **`frontend/dist/` is committed on purpose.** The user runs the app on Windows 8.1, which cannot install Node.js 22. After any change under `frontend/src`, run `npm run build` and commit `frontend/dist` in the same commit.
+- **Browser support: Chrome/Edge 109 and Firefox 115** (the last versions on Windows 7/8.1). This is why the project uses Tailwind v3 rather than v4 (v4 needs oklch, `@property` and similar) and why `vite.config.ts` sets `build.target`. Avoid CSS or JS features newer than those browsers.
 
 ## Working conventions
 

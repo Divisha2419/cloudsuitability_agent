@@ -12,7 +12,7 @@ export default function FieldInput({ field, value, error, onChange }: Props) {
   const inputId = `f-${field.id}`;
   const describedBy = error ? `${inputId}-err` : undefined;
   const base =
-    "w-full rounded-lg border bg-white px-3 py-2 text-sm shadow-xs outline-none transition focus:ring-2 focus:ring-brand-600";
+    "w-full rounded-lg border bg-white px-3 py-2 text-sm shadow-sm outline-none transition focus:ring-2 focus:ring-brand-600";
   const border = error ? "border-critical" : "border-slate-300";
 
   return (
