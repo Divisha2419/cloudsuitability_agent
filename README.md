@@ -14,7 +14,7 @@ The full agent instructions are in [`prompts/system_prompt.md`](prompts/system_p
 
 ## Running it
 
-Requirements: Python 3.11+ and Node.js 20+.
+Requirements: Python 3.11+ and Node.js 22.12+ (the frontend build tools do not work on older Node versions).
 
 ```bash
 # Backend (API on http://localhost:8000)
