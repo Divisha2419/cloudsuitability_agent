@@ -26,7 +26,10 @@ def attributes_config() -> dict:
     config = _load("attributes.yaml")
     extra = config.get("additional_info") or {}
     if extra.get("enabled"):
+        excluded = set(extra.get("exclude_sections") or [])
         for section in config["sections"]:
+            if section["id"] in excluded:
+                continue
             section["fields"].append({
                 "id": f"{section['id']}_additional_info",
                 "label": extra.get("label", "Additional Information"),

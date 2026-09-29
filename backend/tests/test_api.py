@@ -96,10 +96,10 @@ def test_batch_rejects_unknown_file_type(client):
 
 
 def test_logo_404_without_file_and_served_with_file(client, tmp_path, monkeypatch):
+    monkeypatch.setattr(api, "BRANDING_DIR", tmp_path)  # independent of the real config/branding
     assert client.get("/api/branding/logo").status_code == 404
     assert client.get("/api/branding").json() == {"logo_url": None}
     (tmp_path / "logo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'/>")
-    monkeypatch.setattr(api, "BRANDING_DIR", tmp_path)
     r = client.get("/api/branding/logo")
     assert r.status_code == 200 and r.headers["content-type"].startswith("image/svg+xml")
     assert client.get("/api/branding").json() == {"logo_url": "/api/branding/logo"}

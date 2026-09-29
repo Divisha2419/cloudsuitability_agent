@@ -196,7 +196,8 @@ def test_additional_info_fields_and_report(answers):
     from cloudsuit.schema import fields
 
     extra = [f for f in fields().values() if f.get("additional")]
-    assert len(extra) == 5 and all(not f["required"] for f in extra)
+    assert len(extra) == 4 and all(not f["required"] for f in extra)
+    assert "application_info_additional_info" not in fields()  # excluded in attributes.yaml
     answers["tech_infrastructure_additional_info"] = "DB version to be confirmed"
     r = assess(answers)
     assert r["additional_info"] == [{"section": "Technical Attributes — Infrastructure", "text": "DB version to be confirmed"}]

@@ -36,6 +36,8 @@ additional_info:
   label: Additional Information
   help: Anything you could not enter in the attributes above — missing details, assumptions, or context for the assessment team.
   placeholder: e.g. Version not known yet, will confirm with the vendor
+  # Sections that do not get the box.
+  exclude_sections: [application_info]
 
 # Bars in the "Data Completeness" side panel. Each bar counts how many of the
 # currently visible fields in its sections the user has answered.

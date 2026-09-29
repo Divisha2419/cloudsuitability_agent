@@ -30,6 +30,8 @@ export default function App() {
   const [finalResult, setFinalResult] = useState<Result | null>(null);
   const [savedId, setSavedId] = useState<number | null>(null);
   const [techAlert, setTechAlert] = useState<TechAlert | null>(null);
+  // Tech-stack fields the user has left at least once; their version check shows from then on.
+  const [touched, setTouched] = useState<Set<string>>(new Set());
   const topRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -116,8 +118,8 @@ export default function App() {
       document.getElementById(`f-${Object.keys(errs)[0]}`)?.focus();
       return;
     }
-    // Tech-stack entries: alert once about missing versions, misspellings and
-    // unrecognised products; clicking Next again with the same entries continues.
+    // Tech-stack entries: point out missing versions, misspellings and unrecognised
+    // products under each field once; clicking Next again with the same entries continues.
     const techFields = current!.section.fields.filter(
       (f) => TECH_FIELDS.includes(f.id) && isVisible(f, answers) && (answers[f.id] ?? "").trim(),
     );
@@ -130,7 +132,12 @@ export default function App() {
       const key = JSON.stringify(items.map((i) => [i.fid, normText(answers[i.fid] ?? "")]));
       if (items.length && techAlert?.key !== key) {
         setTechAlert({ key, items });
-        setTimeout(() => document.getElementById("tech-alert")?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
+        setTouched((t) => new Set([...t, ...items.map((i) => i.fid)]));
+        setTimeout(() => {
+          const el = document.getElementById(`f-${items[0].fid}`);
+          el?.scrollIntoView({ behavior: "smooth", block: "center" });
+          el?.focus();
+        }, 50);
         return;
       }
     }
@@ -145,6 +152,7 @@ export default function App() {
 
   function reset() {
     setAnswers({});
+    setTouched(new Set());
     setSavedId(null);
     setFinalResult(null);
     setFurthest(0);
@@ -179,8 +187,8 @@ export default function App() {
     const c = preview?.phase2.components.find((x) => x.id === fid);
     if (!text || !c || normText(c.input) !== text) return null;
     if (c.check.status === "suggestion" || c.check.status === "unrecognized") return c.check;
-    // Missing versions are pointed out once the user tries to move on.
-    if (c.check.status === "missing_version" && techAlert?.items.some((i) => i.fid === fid)) return c.check;
+    // Missing versions are pointed out once the user has left the field (or clicked Next).
+    if (c.check.status === "missing_version" && touched.has(fid)) return c.check;
     return null;
   }
 
@@ -271,26 +279,15 @@ export default function App() {
                             error={errors[f.id]}
                             hint={hintFor(f.id)}
                             onChange={(v) => setAnswer(f.id, v)}
+                            onBlur={TECH_FIELDS.includes(f.id) ? () => setTouched((t) => new Set(t).add(f.id)) : undefined}
                           />
                         ))}
                     </div>
 
                     {techAlert && (
-                      <div
-                        id="tech-alert"
-                        role="alert"
-                        className="mt-6 rounded border border-warning/50 bg-warning/10 px-4 py-3 text-sm text-[#7a4700]"
-                      >
-                        <p className="font-bold">Please review the technology stack details</p>
-                        <ul className="mt-1 list-disc space-y-0.5 pl-5">
-                          {techAlert.items.map((i) => (
-                            <li key={i.fid}>
-                              <span className="font-semibold">{i.label}:</span> {i.check.message}
-                            </li>
-                          ))}
-                        </ul>
-                        <p className="mt-2 text-xs">Update the fields above, or click Next again to continue as entered.</p>
-                      </div>
+                      <p role="alert" className="mt-6 text-[13px] text-[#7a4700]">
+                        Please review the technology stack details highlighted above, or click Next again to continue as entered.
+                      </p>
                     )}
 
                     <div className="mt-8 flex items-center justify-between border-t border-ink-line pt-5">

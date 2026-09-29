@@ -108,7 +108,7 @@ def check(component: str, text: str | None) -> dict:
             if product.get("needs_version") and not re.search(r"\d", part):
                 return {
                     "status": "missing_version",
-                    "message": f"Please add the version of {product['name']}. "
+                    "message": f"Please mention the version of {product['name']} as well. "
                     "Cloud compatibility cannot be determined without it.",
                     "suggestion": "",
                 }

@@ -7,9 +7,11 @@ interface Props {
   /** Tech-stack input check (version missing, spelling suggestion, unrecognised). */
   hint?: TechCheck | null;
   onChange: (value: string) => void;
+  /** Called when the user leaves a text field (used to show the version check). */
+  onBlur?: () => void;
 }
 
-export default function FieldInput({ field, value, error, hint, onChange }: Props) {
+export default function FieldInput({ field, value, error, hint, onChange, onBlur }: Props) {
   const inputId = `f-${field.id}`;
   const helpId = `${inputId}-help`;
   const msgId = `${inputId}-msg`;
@@ -78,6 +80,7 @@ export default function FieldInput({ field, value, error, hint, onChange }: Prop
           aria-invalid={flagged}
           aria-describedby={describedBy}
           onChange={(e) => onChange(e.target.value)}
+          onBlur={onBlur}
           className={`${base} ${border}`}
         />
       )}
@@ -91,6 +94,7 @@ export default function FieldInput({ field, value, error, hint, onChange }: Prop
           aria-invalid={flagged}
           aria-describedby={describedBy}
           onChange={(e) => onChange(e.target.value)}
+          onBlur={onBlur}
           className={`${base} ${border}`}
         />
       )}
