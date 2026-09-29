@@ -22,7 +22,21 @@ def _load(name: str) -> dict:
 
 @lru_cache
 def attributes_config() -> dict:
-    return _load("attributes.yaml")
+    """attributes.yaml, with an "Additional Information" box appended to each section when enabled."""
+    config = _load("attributes.yaml")
+    extra = config.get("additional_info") or {}
+    if extra.get("enabled"):
+        for section in config["sections"]:
+            section["fields"].append({
+                "id": f"{section['id']}_additional_info",
+                "label": extra.get("label", "Additional Information"),
+                "type": "textarea",
+                "required": False,
+                "help": extra.get("help", ""),
+                "placeholder": extra.get("placeholder", ""),
+                "additional": True,
+            })
+    return config
 
 
 @lru_cache
@@ -106,6 +120,16 @@ def validate(raw_answers: Answers) -> tuple[Answers, dict[str, str]]:
     for fid in missing_required(answers):
         errors.setdefault(fid, "This field is required")
     return answers, errors
+
+
+def additional_info(answers: Answers) -> list[dict]:
+    """Non-empty "Additional Information" boxes, as [{section, text}]."""
+    titles = {s["id"]: s["title"] for s in attributes_config()["sections"]}
+    return [
+        {"section": titles[f["section"]], "text": answers[fid]}
+        for fid, f in fields().items()
+        if f.get("additional") and answers.get(fid)
+    ]
 
 
 def option_label(fid: str, value: str | None) -> str:

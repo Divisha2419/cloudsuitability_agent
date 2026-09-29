@@ -39,6 +39,10 @@ npm run build    # rebuilds frontend/dist — commit it together with your sourc
 
 Saved assessments go to `data/assessments.db` (SQLite). To use PostgreSQL instead, set `DATABASE_URL` (for example `postgresql+psycopg://user:pass@host/db`) and install a driver such as `psycopg[binary]`.
 
+## Logo
+
+To show the official logo at the top left, put the file in `config/branding/` as `logo.svg` or `logo.png`, then refresh the browser. Without it, the text wordmark is shown.
+
 ## Batch assessment
 
 On the **Portfolio** page, download the Excel template, fill in one application per row and upload it. [`examples/sample_applications.csv`](examples/sample_applications.csv) contains six sample applications, one for each 6R outcome.

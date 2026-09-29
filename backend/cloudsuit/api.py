@@ -9,6 +9,7 @@ from __future__ import annotations
 import os
 import re
 from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
@@ -20,7 +21,7 @@ from pydantic import BaseModel
 from . import batch, exports
 from .engine import assess
 from .report import text_report
-from .schema import REPO_ROOT, attributes_config, validate
+from .schema import CONFIG_DIR, REPO_ROOT, attributes_config, validate
 from .storage import Store
 
 app = FastAPI(title="Cloud Suitability Assessment", version="0.1.0")
@@ -185,6 +186,35 @@ async def post_batch(file: UploadFile = File(...), save: bool = True) -> dict:
     ranked = sorted(valid, key=lambda r: r["score"], reverse=True)
     return {"total": len(rows), "assessed": len(valid), "ranked": ranked,
             "rejected": [r for r in rows if r["errors"]]}
+
+
+# --------------------------------------------------------------------------- branding
+
+BRANDING_DIR = CONFIG_DIR / "branding"
+LOGO_TYPES = {".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg"}
+
+
+def _logo_file() -> tuple[Path, str] | None:
+    for ext, media in LOGO_TYPES.items():
+        path = BRANDING_DIR / f"logo{ext}"
+        if path.is_file():
+            return path, media
+    return None
+
+
+@app.get("/api/branding")
+def branding() -> dict:
+    """Tells the UI whether a logo file was dropped into config/branding/."""
+    return {"logo_url": "/api/branding/logo" if _logo_file() else None}
+
+
+@app.get("/api/branding/logo")
+def branding_logo() -> FileResponse:
+    """The logo file in config/branding/ (logo.svg / .png / .jpg); 404 if none."""
+    found = _logo_file()
+    if found is None:
+        raise HTTPException(404, "No logo configured")
+    return FileResponse(found[0], media_type=found[1], headers={"Cache-Control": "no-cache"})
 
 
 # --------------------------------------------------------------------------- frontend

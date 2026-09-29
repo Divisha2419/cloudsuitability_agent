@@ -48,6 +48,11 @@ def text_report(result: dict) -> str:
     lines += [f"  {i}. {s}" for i, s in enumerate(rec["next_steps"], 1)]
     lines.append("")
 
+    if result.get("additional_info"):
+        lines += _section("ADDITIONAL INFORMATION")
+        lines += [f"  {a['section']}: {a['text']}" for a in result["additional_info"]]
+        lines.append("")
+
     lines += _section("KEY RISKS & FLAGS")
     lines += [f"  [{r['severity'].upper()}] {r['message']}" for r in result["risks"]] or ["  None identified."]
     return "\n".join(lines) + "\n"

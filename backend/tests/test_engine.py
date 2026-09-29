@@ -178,3 +178,26 @@ def test_on_premise_dependencies(answers):
     # "Low" latency is not an on-premise dependency; only Ultra Low is.
     answers["latency"] = "Low"
     assert "latency" not in [d["id"] for d in assess(answers)["on_premise_dependencies"]]
+
+
+def test_tech_stack_input_checks():
+    from cloudsuit.techstack import check
+
+    assert check("operating_system", "Windows Server")["status"] == "missing_version"
+    assert check("operating_system", "Windows Server 2019")["status"] == "ok"
+    s = check("database", "Postgress 14")
+    assert s["status"] == "suggestion" and s["suggestion"] == "PostgreSQL 14"
+    assert check("database", "banana 12")["status"] == "unrecognized"
+    for ok in (("database", "None"), ("app_server", "None"), ("programming_language", "Go"), ("database", "SQLite")):
+        assert check(*ok)["status"] == "ok", ok
+
+
+def test_additional_info_fields_and_report(answers):
+    from cloudsuit.schema import fields
+
+    extra = [f for f in fields().values() if f.get("additional")]
+    assert len(extra) == 5 and all(not f["required"] for f in extra)
+    answers["tech_infrastructure_additional_info"] = "DB version to be confirmed"
+    r = assess(answers)
+    assert r["additional_info"] == [{"section": "Technical Attributes — Infrastructure", "text": "DB version to be confirmed"}]
+    assert "ADDITIONAL INFORMATION" in text_report(r)

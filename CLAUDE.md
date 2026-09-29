@@ -15,9 +15,10 @@ prompts/system_prompt.md        Agent instructions (verbatim, do not edit withou
 config/attributes.yaml          All intake fields: steps, sections, types, options, required, tooltips, show_if
 config/tech_stack_ratings.yaml  Phase 2 lookup tables as ordered regex rules
 config/scoring_rubric.yaml      Phase 3 weights/points, score bands, 6R definitions and next steps
+config/branding/                Optional logo.svg/.png shown top-left (falls back to the text wordmark)
 backend/cloudsuit/              Python package (FastAPI)
   schema.py      loads config; normalises answers (select accepts value or label); validation; show_if
-  techstack.py   Phase 2 rating of free-text OS/DB/language/server
+  techstack.py   Phase 2 rating of free-text OS/DB/language/server, plus input checks (missing version, spelling, unrecognised)
   engine.py      phase1 / phase2 / phase3 / recommend (6R) / risks / assess()
   report.py      text report in the instructions' "Output Report Format"
   exports.py     PDF (reportlab) and Excel (openpyxl) exports; batch upload template
@@ -56,6 +57,9 @@ cd frontend && npm run build
 - **The 6R rules** live in `engine.recommend()` in the priority order from the instructions (first match wins). Rule `0` is a fallback for a gap in the specified rules.
 - **Fields marked `origin: added`** in `attributes.yaml` (coupling, state, mainframe, proximity, SaaS equivalent, safety-critical OT) were added to feed the scoring, hard-filter and behaviour rules. They are now listed in the instructions' intake tables too. The UI labels them "scoring input".
 - Hidden fields (`show_if` not met) are dropped from answers before scoring and saving.
+- **Additional Information boxes** are not in the YAML sections: `schema.attributes_config()` appends a `<section>_additional_info` textarea (`additional: true`) to every section when `additional_info.enabled` is true. They are saved and exported (`result.additional_info`) but excluded from Data Completeness.
+- **Tech-stack input checks** use the `products` catalogue in `tech_stack_ratings.yaml` (canonical name, aliases, `needs_version`). `techstack.check()` returns `ok | missing_version | suggestion | unrecognized` per component in `phase2.components[].check`. The UI shows suggestions/unrecognised inline while typing, and on Next shows a one-time alert (clicking Next again with the same entries continues). Spelling suggestions use difflib with a 0.8 cutoff, aliases of 4+ chars and the same first letter.
+- **Attribute explanations** (`help` in the YAML) are shown under each label, not as tooltips.
 - **`frontend/dist/` is committed on purpose.** The user runs the app on Windows 8.1, which cannot install Node.js 22. After any change under `frontend/src`, run `npm run build` and commit `frontend/dist` in the same commit.
 - **Visual style** follows the Deloitte report deck: palette in `frontend/tailwind.config.js` (`brand` greens, `dblue`, `teal`, `ink` greys), Calibri, and dark-green header bands via `Card`. The logo is the text wordmark `DeloitteLogo` in `ui.tsx`. Red (`critical`) is only for "not cloud compatible" and high risks. See UI requirement 10 in the instructions.
 - **Browser support: Chrome/Edge 109 and Firefox 115** (the last versions on Windows 7/8.1). This is why the project uses Tailwind v3 rather than v4 (v4 needs oklch, `@property` and similar) and why `vite.config.ts` sets `build.target`. Avoid CSS or JS features newer than those browsers.

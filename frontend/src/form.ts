@@ -40,3 +40,8 @@ export function screens(schema: Schema): Screen[] {
     step.sections.map((sid, i) => ({ stepIndex, section: byId[sid], indexInStep: i, countInStep: step.sections.length })),
   );
 }
+
+/** Free-text tech-stack fields; each field id is also its Phase 2 component id. */
+export const TECH_FIELDS = ["operating_system", "database", "programming_language", "app_server"];
+
+export const normText = (s: string) => s.split(/\s+/).filter(Boolean).join(" ");

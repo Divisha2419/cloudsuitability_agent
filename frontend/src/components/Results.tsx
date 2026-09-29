@@ -229,6 +229,19 @@ export default function Results({ result, answers, savedId, onSave, onEdit, onNe
         </Card>
       </div>
 
+      {result.additional_info.length > 0 && (
+        <Card title="Additional information">
+          <dl className="space-y-3 text-sm">
+            {result.additional_info.map((a) => (
+              <div key={a.section}>
+                <dt className="font-semibold text-ink">{a.section}</dt>
+                <dd className="whitespace-pre-line text-ink-muted">{a.text}</dd>
+              </div>
+            ))}
+          </dl>
+        </Card>
+      )}
+
       <Card title="6R definitions">
         <dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
           {SIX_R_ORDER.map((code) => (

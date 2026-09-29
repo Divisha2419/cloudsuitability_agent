@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import { type ButtonHTMLAttributes, type ReactNode, useEffect, useState } from "react";
 import type { Rating, SixR } from "../types";
 
 // Status colours always come with an icon and a text label, never colour alone.
@@ -74,28 +74,20 @@ export function Button({
   );
 }
 
-export function InfoTip({ text }: { text: string }) {
-  return (
-    <span className="group relative inline-flex">
-      <button
-        type="button"
-        aria-label="More information"
-        className="flex h-4 w-4 items-center justify-center rounded-full bg-slate-200 text-[10px] font-bold text-ink-muted hover:bg-brand-100 hover:text-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-600"
-      >
-        i
-      </button>
-      <span
-        role="tooltip"
-        className="pointer-events-none invisible absolute bottom-full left-1/2 z-20 mb-2 w-64 -translate-x-1/2 rounded bg-ink px-3 py-2 text-xs font-normal leading-relaxed text-white opacity-0 shadow-lg transition group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100"
-      >
-        {text}
-      </span>
-    </span>
-  );
-}
-
-/** Deloitte wordmark drawn as text: "Deloitte" in black with the green full stop. */
+/**
+ * Logo at the top left. Shows config/branding/logo.(svg|png|jpg) when that file
+ * exists (served at /api/branding/logo); otherwise the text wordmark
+ * "Deloitte" with the green full stop.
+ */
 export function DeloitteLogo({ className = "" }: { className?: string }) {
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  useEffect(() => {
+    fetch("/api/branding")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((b) => setLogoUrl(b?.logo_url ?? null))
+      .catch(() => {});
+  }, []);
+  if (logoUrl) return <img src={logoUrl} alt="Deloitte" className="h-8 w-auto" onError={() => setLogoUrl(null)} />;
   return (
     <span className={`select-none font-bold leading-none tracking-tight text-ink ${className}`} aria-label="Deloitte">
       Deloitte<span className="text-brand-400">.</span>

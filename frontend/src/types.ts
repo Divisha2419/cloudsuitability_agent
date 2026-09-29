@@ -17,6 +17,15 @@ export interface Field {
   options?: Option[];
   show_if?: { field: string; in: string[] };
   origin?: "instructions" | "added";
+  /** Auto-generated "Additional Information" box (not counted in Data Completeness). */
+  additional?: boolean;
+}
+
+export interface TechCheck {
+  status: "ok" | "missing_version" | "suggestion" | "unrecognized" | "empty";
+  message: string;
+  /** For "suggestion": the whole input with the misspelling corrected. */
+  suggestion: string;
 }
 
 export interface Section {
@@ -68,6 +77,7 @@ export interface Result {
       matched: string;
       detail: string;
       verification_required: boolean;
+      check: TechCheck;
     }[];
     overall: "fully_ready" | "conditional" | "not_suitable";
     overall_label: string;
@@ -90,6 +100,7 @@ export interface Result {
   };
   risks: { severity: "high" | "medium" | "low"; message: string }[];
   on_premise_dependencies: { id: string; label: string; detail: string }[];
+  additional_info: { section: string; text: string }[];
   six_r_definitions: Record<SixR, string>;
 }
 

@@ -6,10 +6,16 @@ import Results from "./components/Results";
 import ReadinessPanel from "./components/ReadinessPanel";
 import Stepper from "./components/Stepper";
 import { Button, DeloitteLogo } from "./components/ui";
-import { isVisible, screens as buildScreens, sectionErrors, visibleAnswers } from "./form";
-import type { Answers, Result, Schema } from "./types";
+import { TECH_FIELDS, isVisible, normText, screens as buildScreens, sectionErrors, visibleAnswers } from "./form";
+import type { Answers, Result, Schema, TechCheck } from "./types";
 
 type View = "assess" | "portfolio";
+
+interface TechAlert {
+  /** The answers the alert was shown for; clicking Next again with the same answers continues. */
+  key: string;
+  items: { fid: string; label: string; check: TechCheck }[];
+}
 
 export default function App() {
   const [schema, setSchema] = useState<Schema | null>(null);
@@ -23,6 +29,7 @@ export default function App() {
   const [previewLoading, setPreviewLoading] = useState(false);
   const [finalResult, setFinalResult] = useState<Result | null>(null);
   const [savedId, setSavedId] = useState<number | null>(null);
+  const [techAlert, setTechAlert] = useState<TechAlert | null>(null);
   const topRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -67,6 +74,7 @@ export default function App() {
 
   function goTo(idx: number) {
     setErrors({});
+    setTechAlert(null);
     setScreenIdx(idx);
     setFurthest((f) => Math.max(f, idx));
     topRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -101,12 +109,30 @@ export default function App() {
     goTo(screens.length);
   }
 
-  function next() {
+  async function next() {
     const errs = sectionErrors(current!.section, answers);
     if (Object.keys(errs).length) {
       setErrors(errs);
       document.getElementById(`f-${Object.keys(errs)[0]}`)?.focus();
       return;
+    }
+    // Tech-stack entries: alert once about missing versions, misspellings and
+    // unrecognised products; clicking Next again with the same entries continues.
+    const techFields = current!.section.fields.filter(
+      (f) => TECH_FIELDS.includes(f.id) && isVisible(f, answers) && (answers[f.id] ?? "").trim(),
+    );
+    if (techFields.length) {
+      const res = await api.assess(cleanAnswers);
+      setPreview(res);
+      const items = techFields
+        .map((f) => ({ fid: f.id, label: f.label, check: res.phase2.components.find((c) => c.id === f.id)!.check }))
+        .filter((i) => i.check.status !== "ok" && i.check.status !== "empty");
+      const key = JSON.stringify(items.map((i) => [i.fid, normText(answers[i.fid] ?? "")]));
+      if (items.length && techAlert?.key !== key) {
+        setTechAlert({ key, items });
+        setTimeout(() => document.getElementById("tech-alert")?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
+        return;
+      }
     }
     if (screenIdx === screens.length - 1) void showResults();
     else goTo(screenIdx + 1);
@@ -145,6 +171,17 @@ export default function App() {
     setView("assess");
     setErrors({});
     setScreenIdx(screens.length);
+  }
+
+  function hintFor(fid: string): TechCheck | null {
+    if (!TECH_FIELDS.includes(fid)) return null;
+    const text = normText(answers[fid] ?? "");
+    const c = preview?.phase2.components.find((x) => x.id === fid);
+    if (!text || !c || normText(c.input) !== text) return null;
+    if (c.check.status === "suggestion" || c.check.status === "unrecognized") return c.check;
+    // Missing versions are pointed out once the user tries to move on.
+    if (c.check.status === "missing_version" && techAlert?.items.some((i) => i.fid === fid)) return c.check;
+    return null;
   }
 
   return (
@@ -200,7 +237,7 @@ export default function App() {
                     className="rounded-md border border-ink-line bg-white p-5 shadow-sm sm:p-7"
                     onSubmit={(e) => {
                       e.preventDefault();
-                      next();
+                      void next();
                     }}
                     noValidate
                   >
@@ -227,9 +264,34 @@ export default function App() {
                       {current.section.fields
                         .filter((f) => isVisible(f, answers))
                         .map((f) => (
-                          <FieldInput key={f.id} field={f} value={answers[f.id] ?? ""} error={errors[f.id]} onChange={(v) => setAnswer(f.id, v)} />
+                          <FieldInput
+                            key={f.id}
+                            field={f}
+                            value={answers[f.id] ?? ""}
+                            error={errors[f.id]}
+                            hint={hintFor(f.id)}
+                            onChange={(v) => setAnswer(f.id, v)}
+                          />
                         ))}
                     </div>
+
+                    {techAlert && (
+                      <div
+                        id="tech-alert"
+                        role="alert"
+                        className="mt-6 rounded border border-warning/50 bg-warning/10 px-4 py-3 text-sm text-[#7a4700]"
+                      >
+                        <p className="font-bold">Please review the technology stack details</p>
+                        <ul className="mt-1 list-disc space-y-0.5 pl-5">
+                          {techAlert.items.map((i) => (
+                            <li key={i.fid}>
+                              <span className="font-semibold">{i.label}:</span> {i.check.message}
+                            </li>
+                          ))}
+                        </ul>
+                        <p className="mt-2 text-xs">Update the fields above, or click Next again to continue as entered.</p>
+                      </div>
+                    )}
 
                     <div className="mt-8 flex items-center justify-between border-t border-ink-line pt-5">
                       <Button type="button" variant="secondary" disabled={screenIdx === 0} onClick={() => goTo(screenIdx - 1)}>

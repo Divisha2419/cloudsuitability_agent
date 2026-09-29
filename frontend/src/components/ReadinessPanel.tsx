@@ -1,4 +1,4 @@
-import { isVisible } from "../form";
+import { isVisible, normText } from "../form";
 import type { Answers, Rating, Result, Schema } from "../types";
 import { RATING_STYLE } from "./ui";
 
@@ -45,20 +45,21 @@ const RATING_TEXT: Record<Rating, string> = {
   na: "Not applicable",
 };
 
-const norm = (s: string) => s.split(/\s+/).filter(Boolean).join(" ");
+// Input problems take precedence over the rating: without a valid product and
+// version the rating is not meaningful yet.
+const CHECK_TEXT: Record<string, string> = {
+  missing_version: "Version required",
+  suggestion: "Check spelling",
+  unrecognized: "Needs to be checked",
+};
 
 export default function ReadinessPanel({ schema, answers, result, loading }: Props) {
   const sections = Object.fromEntries(schema.sections.map((s) => [s.id, s]));
   const groups = schema.completeness_groups.map((g) => {
-    const fields = g.sections.flatMap((sid) => sections[sid].fields).filter((f) => isVisible(f, answers));
-    const mandatory = fields.filter((f) => f.required);
-    return {
-      label: g.label,
-      total: fields.length,
-      done: fields.filter((f) => filled(answers, f.id)).length,
-      mandatory: mandatory.length,
-      mandatoryDone: mandatory.filter((f) => filled(answers, f.id)).length,
-    };
+    const fields = g.sections
+      .flatMap((sid) => sections[sid].fields)
+      .filter((f) => !f.additional && isVisible(f, answers));
+    return { label: g.label, total: fields.length, done: fields.filter((f) => filled(answers, f.id)).length };
   });
   const total = groups.reduce((n, g) => n + g.total, 0);
   const done = groups.reduce((n, g) => n + g.done, 0);
@@ -91,13 +92,7 @@ export default function ReadinessPanel({ schema, answers, result, loading }: Pro
             {groups.map((g) => (
               <li key={g.label}>
                 <div className="mb-1 flex items-start justify-between gap-3 text-[13px]">
-                  <span className="leading-tight text-ink">
-                    {g.label}
-                    <span className="block text-[11px] text-ink-muted">
-                      Mandatory {g.mandatoryDone}/{g.mandatory}
-                      {g.mandatory > 0 && g.mandatoryDone === g.mandatory && <span className="ml-1 font-bold text-good">✓</span>}
-                    </span>
-                  </span>
+                  <span className="leading-tight text-ink">{g.label}</span>
                   <span className="shrink-0 tabular-nums font-semibold text-ink">
                     {g.done}/{g.total}
                   </span>
@@ -115,16 +110,17 @@ export default function ReadinessPanel({ schema, answers, result, loading }: Pro
           <Heading>Technology Stack Compatibility</Heading>
           <ul className="space-y-3">
             {TECH.filter((t) => !(t.component === "programming_language" && isCots)).map((t) => {
-              const text = norm(answers[t.field] ?? "");
+              const text = normText(answers[t.field] ?? "");
               const c = ratings[t.component];
-              const current = !!text && c && norm(c.input) === text;
-              const style = current ? RATING_STYLE[c.rating] : null;
+              const current = !!text && c && normText(c.input) === text;
+              const inputIssue = current ? CHECK_TEXT[c.check.status] : undefined;
+              const style = current && !inputIssue ? RATING_STYLE[c.rating] : null;
               return (
                 <li key={t.component}>
                   <div className="mb-1 flex items-center justify-between gap-2 text-[13px]">
                     <span className="text-ink">{t.label}</span>
-                    <span className={`text-[11px] ${style ? "font-semibold" : "text-ink-muted"}`}>
-                      {!text ? "Awaiting input" : current ? RATING_TEXT[c.rating] : "Checking…"}
+                    <span className={`text-[11px] ${style || inputIssue ? "font-semibold" : "text-ink-muted"}`}>
+                      {!text ? "Awaiting input" : !current ? "Checking…" : inputIssue ?? RATING_TEXT[c.rating]}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -134,13 +130,13 @@ export default function ReadinessPanel({ schema, answers, result, loading }: Pro
                     <span
                       aria-hidden
                       className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${
-                        style ? `${style.bar} text-white` : "bg-[var(--color-track)] text-transparent"
+                        style ? `${style.bar} text-white` : inputIssue ? "bg-ink-muted text-white" : "bg-[var(--color-track)] text-transparent"
                       }`}
                     >
-                      {style?.icon ?? "·"}
+                      {style?.icon ?? (inputIssue ? "?" : "·")}
                     </span>
                   </div>
-                  {current && c.verification_required && (
+                  {current && !inputIssue && c.verification_required && (
                     <p className="mt-1 text-[11px] text-ink-muted">Not in the lookup table: version to be verified.</p>
                   )}
                 </li>

@@ -20,11 +20,11 @@ card when assessment is complete.
 
 ### Step 0 – Welcome
 Greet the user. Explain the three-phase process. Ask for:
-- Application Name (text)
-- Application ID (text, optional)
+- Application Name (text, mandatory)
+- Application ID (text, mandatory)
 - Application Description (text)
 - Application Manager Name (text)
-- Geography of Deployment (text)
+- Geography of Deployment (text, optional)
 
 ---
 
@@ -57,8 +57,8 @@ Present each field with its allowed values. Mark fields with (*) as required.
 | Vendor Offers a SaaS Equivalent | Select | Yes / No / Unknown (if COTS or Customised COTS; used by 6R rule 2) |
 | Application Architecture (*) | Select | Monolithic Architecture / Service Oriented Architecture (SOA) / Microservices Architecture |
 | Source Code Available | Select | Yes / No / Partial or limited access / NA |
-| Application Coupling (*) | Select | Independent / Loosely coupled / Tightly coupled (used in Cloud Native Score) |
-| Application State (*) | Select | Stateless / Stateful (used in Cloud Native Score) |
+| Application Coupling | Select | Independent / Loosely coupled / Tightly coupled (used in Cloud Native Score) |
+| Application State | Select | Stateless / Stateful (used in Cloud Native Score) |
 | Programming Language and Version | Text | e.g. Java 17, .NET 6, Python 3.11 (skip if COTS) |
 
 ---
@@ -314,9 +314,9 @@ The web interface should implement these interaction patterns:
 2. **Section-by-section display** — Never show all fields at once. Present one section per screen.
 3. **Conditional fields** — Hide COTS-specific fields when "Inhouse built" is selected. Hide hardware details unless hardware dependency = Yes.
 4. **Inline validation** — Highlight empty required fields before allowing progression to next section.
-5. **Tooltip/info icons** — Each field label has a hoverable tooltip showing the full definition from the questionnaire.
+5. **Attribute explanations** — Show each attribute's explanation directly below its label, in the same font but slightly smaller and grey, so users see what is required without hovering.
 6. **Assessment Readiness side panel** — Shown next to the form on every intake screen and updated as fields are filled. It has three parts, separated by horizontal lines:
-   - **Data Completeness** — the overall percentage and a bar showing how many attributes the user has provided out of all attributes currently shown. Below it, one bar each for: Application Information, Business Attributes, Technical Attributes – Architecture, and Technical Attributes – Infrastructure & Operational. Each bar shows answered/total attributes for that group and the count of mandatory attributes completed (e.g. "Mandatory 3/4").
+   - **Data Completeness** — the overall percentage and a bar showing how many attributes the user has provided out of all attributes currently shown. Below it, one bar each for: Application Information, Business Attributes, Technical Attributes – Architecture, and Technical Attributes – Infrastructure & Operational. Each bar shows answered/total attributes for that group. "Additional Information" boxes are not counted.
    - **Technology Stack Compatibility** — one bar each for Operating System, Database, Programming Language and App/Web Server. A bar stays grey ("Awaiting input") until that component is entered, then fills using the Phase 2 rating: **green with ✓** = Cloud Ready (cloud compatible), **amber with !** = Needs Upgrade (upgrade required), **red with ✕** = Not Cloud Suitable (not cloud compatible), grey = N/A (e.g. no web server). The Programming Language bar is hidden when the application is COTS.
    - **On-Premise Dependencies** — no bars. List an item only when the user's answer creates it: **Hardware Dependency** (hardware dependency = Yes, with the hardware details), **Latency Required** (latency = Ultra Low <10 ms), **Application To be Decommissioned** (roadmap or lifecycle = To be decommissioned, or lifecycle = Retired). Otherwise show "None identified so far".
 7. **Results dashboard** — Final page renders the structured report with a gauge chart for the score, color-coded Phase 2 table, and a highlighted 6R badge.
@@ -324,6 +324,13 @@ The web interface should implement these interaction patterns:
 9. **Multi-application mode** — Allow saving an application's assessment and starting a new one. Show a portfolio summary table when multiple apps are assessed.
 10. **Visual style (consulting)** — Clean, consulting-report look with the Deloitte logo at the top left. Use the Deloitte palette: Deloitte green `#86BC25` for accents and progress bars, dark green `#046A38` for primary buttons and section header bands, green `#26890D`, teal `#0D8390` and blue `#007CB0` / `#005587` for secondary elements, grey `#53565A` for secondary text and `#D0D0CE` for borders. Font: Calibri (fallback Arial). Section headers are white text on a dark-green band; page titles are large, bold and black with a one-line grey lead sentence underneath. Use red only for "Not cloud compatible" and high-severity risks, never as a theme colour. Status colours are always paired with an icon (✓ ! ✕) and a text label.
 11. **Browser support** — The interface must work in Chrome/Edge 109+ and Firefox 115+ (the last versions available on Windows 7/8.1), without requiring Node.js on the user's machine.
+12. **Additional Information box** — At the bottom of every intake screen, after all attributes, show an optional free-text box titled "Additional Information" where users can record anything they could not enter in the attributes (missing details, assumptions, context). Save it with the assessment and include it in the results page, PDF, Excel and text report.
+13. **Tech stack input checks** — For Operating System, Database, Programming Language and App/Web Server:
+    - If the user gives a product name without a version (e.g. "Windows Server", "Java", "IIS"), alert them when they click Next to add the version, because cloud compatibility cannot be determined without it. Products whose rating does not depend on version (e.g. SQLite, VB6, COBOL, Go, WebLogic) and "None" do not need a version.
+    - If the entry looks like a misspelling of a known product (e.g. "Postgress", "Ubunto", "Ngnix"), show "Did you mean …?" with a one-click fix.
+    - If the entry is not recognisable at all, show "It needs to be checked."
+    - The alert is shown once; clicking Next again with the same entries continues. In the side panel, such entries show "Version required", "Check spelling" or "Needs to be checked" instead of a compatibility colour.
+14. **Logo** — Show the official logo file when one is provided (config/branding/logo.svg or .png); otherwise show the "Deloitte." wordmark.
 
 ---
 
@@ -343,7 +350,7 @@ The web interface should implement these interaction patterns:
 
 1. Never skip Phase 1 — always evaluate hard filters first.
 2. If a hard filter is triggered, still optionally complete Phase 2 and 3 to inform future roadmap planning, but clearly label the primary recommendation.
-3. When a user provides an open-text OS/DB/language value not in the lookup tables, ask for clarification or flag it as "Needs Upgrade (verification required)".
+3. When a user provides an open-text OS/DB/language/app server value not in the lookup tables, ask for clarification or flag it as "Needs Upgrade (verification required)". Ask for the version when only a product name is given, and suggest the correct product name for likely misspellings (see UI requirement 13).
 4. Always explain the reasoning behind the 6R recommendation in plain language.
 5. Never recommend cloud migration for safety-critical OT applications (e.g., IEC 61508 certified) without flagging it as requiring a dedicated OT cloud security review.
 6. Allow users to edit any previous section before generating the final report.

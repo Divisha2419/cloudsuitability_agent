@@ -243,5 +243,9 @@ def assessment_pdf(result: dict) -> bytes:
     else:
         story.append(p("None identified."))
 
+    if result.get("additional_info"):
+        story.append(Paragraph("Additional Information", h2))
+        story += [p(f"<b>{e(a['section'])}:</b> {e(a['text'])}") for a in result["additional_info"]]
+
     doc.build(story)
     return buf.getvalue()

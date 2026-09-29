@@ -93,3 +93,13 @@ def test_batch_xlsx_template_round_trip(client, answers):
 def test_batch_rejects_unknown_file_type(client):
     r = client.post("/api/batch", files={"file": ("apps.txt", b"x", "text/plain")})
     assert r.status_code == 400
+
+
+def test_logo_404_without_file_and_served_with_file(client, tmp_path, monkeypatch):
+    assert client.get("/api/branding/logo").status_code == 404
+    assert client.get("/api/branding").json() == {"logo_url": None}
+    (tmp_path / "logo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'/>")
+    monkeypatch.setattr(api, "BRANDING_DIR", tmp_path)
+    r = client.get("/api/branding/logo")
+    assert r.status_code == 200 and r.headers["content-type"].startswith("image/svg+xml")
+    assert client.get("/api/branding").json() == {"logo_url": "/api/branding/logo"}

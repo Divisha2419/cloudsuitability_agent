@@ -81,3 +81,68 @@ components:
       - {label: "WebLogic, JBoss EAP 7+", pattern: '\bweblogic\b|jboss(\s*eap)?\s*([7-9]|\d{2})\b', rating: cloud_ready}
       - {label: WebSphere 9+, pattern: 'websphere\D*(9|\d{2})\b', rating: cloud_ready}
       - {label: WebSphere 8 or earlier, pattern: 'websphere\D*[1-8]\b', rating: needs_upgrade}
+
+# Input checks for the four tech-stack fields (shown to the user while typing
+# and when they click Next). Each product has a canonical name, lower-case
+# aliases, and whether a version must be given (needs_version: false for
+# products rated the same regardless of version).
+#   - product recognised but no digit in the text  -> "add the version" alert
+#   - no product recognised, but close to an alias -> "Did you mean …?"
+#   - nothing recognised and no rule above matches -> "needs to be checked"
+products:
+  operating_system:
+    - {name: Windows Server, aliases: [windows server, windows, win server, win], needs_version: true}
+    - {name: Red Hat Enterprise Linux, aliases: [red hat enterprise linux, red hat, redhat, rhel], needs_version: true}
+    - {name: CentOS Stream, aliases: [centos stream, centos], needs_version: true}
+    - {name: Ubuntu, aliases: [ubuntu], needs_version: true}
+    - {name: SUSE Linux Enterprise, aliases: [suse linux enterprise, suse, sles], needs_version: true}
+    - {name: Oracle Linux, aliases: [oracle linux], needs_version: true}
+    - {name: Debian, aliases: [debian], needs_version: true}
+    - {name: Linux, aliases: [linux], needs_version: true}
+    - {name: AIX, aliases: [aix], needs_version: true}
+    - {name: Solaris, aliases: [solaris], needs_version: true}
+    - {name: HP-UX, aliases: [hp-ux, hpux], needs_version: true}
+    - {name: VxWorks, aliases: [vxworks], needs_version: false}
+    - {name: QNX, aliases: [qnx], needs_version: false}
+  database:
+    - {name: MS SQL Server, aliases: [microsoft sql server, ms sql server, ms sql, mssql, sql server], needs_version: true}
+    - {name: PostgreSQL, aliases: [postgresql, postgres, pgsql], needs_version: true}
+    - {name: MySQL, aliases: [mysql], needs_version: true}
+    - {name: MariaDB, aliases: [mariadb], needs_version: true}
+    - {name: Oracle, aliases: [oracle database, oracle db, oracle], needs_version: true}
+    - {name: MongoDB, aliases: [mongodb, mongo], needs_version: true}
+    - {name: IBM Db2, aliases: [ibm db2, db2], needs_version: true}
+    - {name: SAP HANA, aliases: [sap hana, hana], needs_version: true}
+    - {name: Sybase, aliases: [sybase], needs_version: true}
+    - {name: InfluxDB, aliases: [influxdb, influx], needs_version: true}
+    - {name: Redis, aliases: [redis], needs_version: true}
+    - {name: SQLite, aliases: [sqlite], needs_version: false}
+    - {name: MS Access, aliases: [ms access, microsoft access, access], needs_version: false}
+  programming_language:
+    - {name: Java, aliases: [java], needs_version: true}
+    - {name: .NET, aliases: [.net core, .net framework, .net, dotnet, c#, vb.net], needs_version: true}
+    - {name: Python, aliases: [python], needs_version: true}
+    - {name: Node.js, aliases: [node.js, nodejs, node, javascript], needs_version: true}
+    - {name: PHP, aliases: [php], needs_version: true}
+    - {name: Ruby, aliases: [ruby], needs_version: true}
+    - {name: Delphi, aliases: [delphi], needs_version: true}
+    - {name: Go, aliases: [golang, go], needs_version: false}
+    - {name: Rust, aliases: [rust], needs_version: false}
+    - {name: Kotlin, aliases: [kotlin], needs_version: false}
+    - {name: TypeScript, aliases: [typescript], needs_version: false}
+    - {name: Visual Basic 6, aliases: [visual basic 6, vb6], needs_version: false}
+    - {name: COBOL, aliases: [cobol], needs_version: false}
+    - {name: Fortran, aliases: [fortran], needs_version: false}
+    - {name: PowerShell, aliases: [powershell], needs_version: false}
+    - {name: Bash, aliases: [bash, shell scripts, shell script], needs_version: false}
+    - {name: C++, aliases: [c++, cpp], needs_version: false}
+    - {name: JavaScript framework, aliases: [angular, angularjs, react, reactjs, vue, vue.js], needs_version: false}
+  app_server:
+    - {name: IIS, aliases: [internet information services, iis], needs_version: true}
+    - {name: Apache Tomcat, aliases: [apache tomcat, tomcat], needs_version: true}
+    - {name: Nginx, aliases: [nginx], needs_version: true}
+    - {name: Apache HTTP Server, aliases: [apache http server, apache httpd, httpd, apache], needs_version: true}
+    - {name: JBoss EAP, aliases: [jboss eap, jboss], needs_version: true}
+    - {name: WildFly, aliases: [wildfly], needs_version: true}
+    - {name: WebSphere, aliases: [websphere], needs_version: true}
+    - {name: WebLogic, aliases: [weblogic], needs_version: false}

@@ -12,7 +12,7 @@ from datetime import date
 from typing import Any
 
 from . import techstack
-from .schema import Answers, missing_required, normalize, option_label, rubric_config, tech_config
+from .schema import Answers, additional_info, missing_required, normalize, option_label, rubric_config, tech_config
 
 MIGRATING = {"rehost", "replatform", "refactor", "replace"}
 
@@ -77,14 +77,17 @@ def phase2(answers: Answers) -> dict:
         if comp_id == "programming_language" and answers.get("cots_or_custom") == "COTS":
             text = "COTS (no custom code)"
             rating = techstack.Rating("na", "COTS (no custom code)", "assessed via OS/DB")
+            input_check = {"status": "ok", "message": "", "suggestion": ""}
         else:
             rating = techstack.rate(comp_id, text)
+            input_check = techstack.check(comp_id, text)
         components.append({
             "id": comp_id,
             "label": tech_config()["components"][comp_id]["label"],
             "input": text or "Not provided",
             **rating.to_dict(),
             "rating_label": labels[rating.rating],
+            "check": input_check,
         })
     rated = [c["rating"] for c in components if c["rating"] != "na"]
     if "not_suitable" in rated:
@@ -328,5 +331,6 @@ def assess(raw_answers: dict[str, Any], assessed_on: date | None = None) -> dict
         "recommendation": recommend(answers, p1, p2, p3),
         "risks": risks(answers, p2),
         "on_premise_dependencies": on_premise_dependencies(answers),
+        "additional_info": additional_info(answers),
         "six_r_definitions": {k: v["definition"] for k, v in rubric_config()["six_r"].items()},
     }
