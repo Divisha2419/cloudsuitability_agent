@@ -280,6 +280,27 @@ def risks(answers: Answers, p2: dict) -> list[dict]:
     return sorted(out, key=lambda r: order[r["severity"]])
 
 
+# --------------------------------------------------------------------------- on-premise dependencies
+
+
+def on_premise_dependencies(answers: Answers) -> list[dict]:
+    """Answers that tie the application to on-premise, shown in the side panel.
+
+    Unlike the Phase 1 hard filters, hardware dependency is listed on its own
+    (without requiring proximity to equipment).
+    """
+    out = []
+    if _yes(answers, "hardware_dependency"):
+        out.append({"id": "hardware", "label": "Hardware Dependency", "detail": answers.get("hardware_details", "")})
+    if answers.get("latency") == "Ultra Low":
+        out.append({"id": "latency", "label": "Latency Required", "detail": "Ultra Low Latency (<10 ms)"})
+    roadmap, status = answers.get("app_roadmap"), answers.get("app_status")
+    if roadmap == "To be decommissioned" or status in ("To be decommissioned", "Retired"):
+        detail = "Retired" if status == "Retired" else "To be decommissioned"
+        out.append({"id": "decommission", "label": "Application To be Decommissioned", "detail": detail})
+    return out
+
+
 # --------------------------------------------------------------------------- entry point
 
 
@@ -306,5 +327,6 @@ def assess(raw_answers: dict[str, Any], assessed_on: date | None = None) -> dict
         "phase3": p3,
         "recommendation": recommend(answers, p1, p2, p3),
         "risks": risks(answers, p2),
+        "on_premise_dependencies": on_premise_dependencies(answers),
         "six_r_definitions": {k: v["definition"] for k, v in rubric_config()["six_r"].items()},
     }

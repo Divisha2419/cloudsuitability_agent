@@ -166,3 +166,15 @@ def test_example_portfolio_covers_each_outcome():
         "Line SCADA": "retain",
         "Quality Portal": "replatform",
     }
+
+
+def test_on_premise_dependencies(answers):
+    assert assess(answers)["on_premise_dependencies"] == []
+    answers.update(hardware_dependency="Yes", proximity_to_equipment="No", hardware_details="PLC",
+                   latency="Ultra Low", app_status="Retired")
+    deps = assess(answers)["on_premise_dependencies"]
+    assert [d["id"] for d in deps] == ["hardware", "latency", "decommission"]
+    assert deps[0]["detail"] == "PLC" and deps[2]["detail"] == "Retired"
+    # "Low" latency is not an on-premise dependency; only Ultra Low is.
+    answers["latency"] = "Low"
+    assert "latency" not in [d["id"] for d in assess(answers)["on_premise_dependencies"]]

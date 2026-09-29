@@ -65,7 +65,7 @@ export default function Portfolio({ onOpen, onNew }: Props) {
           <Button onClick={onNew}>+ New assessment</Button>
         </div>
       </div>
-      {error && <p className="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-800">{error}</p>}
+      {error && <p className="rounded border border-warning/40 bg-warning/10 px-4 py-2 text-sm text-[#7a4700]">{error}</p>}
 
       {Object.keys(counts).length > 0 && (
         <div className="flex flex-wrap gap-3">
@@ -188,7 +188,7 @@ export default function Portfolio({ onOpen, onNew }: Props) {
               </div>
             )}
             {batch.rejected.length > 0 && (
-              <div className="rounded-lg bg-red-50 p-3 text-sm text-red-900">
+              <div className="rounded border border-warning/40 bg-warning/10 p-3 text-sm text-[#7a4700]">
                 <p className="mb-1 font-medium">Rows not assessed:</p>
                 <ul className="space-y-1">
                   {batch.rejected.map((r) => (

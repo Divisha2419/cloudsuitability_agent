@@ -12,15 +12,15 @@ export default function FieldInput({ field, value, error, onChange }: Props) {
   const inputId = `f-${field.id}`;
   const describedBy = error ? `${inputId}-err` : undefined;
   const base =
-    "w-full rounded-lg border bg-white px-3 py-2 text-sm shadow-sm outline-none transition focus:ring-2 focus:ring-brand-600";
-  const border = error ? "border-critical" : "border-slate-300";
+    "w-full rounded border bg-white px-3 py-2 text-sm shadow-sm outline-none transition focus:ring-2 focus:ring-brand-600";
+  const border = error ? "border-warning" : "border-ink-line";
 
   return (
     <div className="space-y-1.5">
       <div className="flex items-center gap-2">
-        <label htmlFor={field.type === "select" ? undefined : inputId} id={`${inputId}-label`} className="text-sm font-medium text-slate-700">
+        <label htmlFor={field.type === "select" ? undefined : inputId} id={`${inputId}-label`} className="text-[15px] font-semibold text-ink">
           {field.label}
-          {field.required && <span className="ml-0.5 text-critical">*</span>}
+          {field.required && <span className="ml-0.5 font-bold text-brand-600">*</span>}
         </label>
         {field.help && <InfoTip text={field.help} />}
         {field.origin === "added" && (
@@ -44,10 +44,10 @@ export default function FieldInput({ field, value, error, onChange }: Props) {
                 role="radio"
                 aria-checked={selected}
                 onClick={() => onChange(selected && !field.required ? "" : opt.value)}
-                className={`rounded-lg border px-3 py-2 text-left text-sm transition focus:outline-none focus:ring-2 focus:ring-brand-600 ${
+                className={`rounded border px-3 py-2 text-left text-sm transition focus:outline-none focus:ring-2 focus:ring-brand-600 ${
                   selected
                     ? "border-brand-700 bg-brand-700 text-white"
-                    : `${error ? "border-critical/60" : "border-slate-300"} bg-white text-slate-700 hover:border-brand-600 hover:bg-brand-50`
+                    : `${error ? "border-warning" : "border-ink-line"} bg-white text-slate-700 hover:border-brand-600 hover:bg-brand-50`
                 }`}
               >
                 {opt.label}
@@ -84,7 +84,7 @@ export default function FieldInput({ field, value, error, onChange }: Props) {
       )}
 
       {error && (
-        <p id={describedBy} className="text-xs font-medium text-red-700">
+        <p id={describedBy} className="text-xs font-semibold text-[#9a5a00]">
           {error}
         </p>
       )}

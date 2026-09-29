@@ -52,11 +52,12 @@ cd frontend && npm run build
 ## How things fit together
 
 - **Config drives everything.** The UI fetches `config/attributes.yaml` through `GET /api/schema` and renders forms from it. The batch template and validation are built from the same file. To add or change an attribute, edit the YAML. Code changes are only needed when the attribute feeds scoring or rules.
-- **Scoring runs only on the backend.** The live score sidebar calls `POST /api/assess` (debounced) with partial answers. `frontend/src/form.ts` only mirrors `show_if` and required checks so validation feels instant.
+- **Scoring runs only on the backend.** The Assessment Readiness side panel (`frontend/src/components/ReadinessPanel.tsx`) calls `POST /api/assess` (debounced) with partial answers and shows three parts: Data Completeness (bars per `completeness_groups` in `attributes.yaml`, counted on the client), Technology Stack Compatibility (Phase 2 ratings from the backend), and On-Premise Dependencies (`engine.on_premise_dependencies()`). `frontend/src/form.ts` only mirrors `show_if` and required checks so validation feels instant.
 - **The 6R rules** live in `engine.recommend()` in the priority order from the instructions (first match wins). Rule `0` is a fallback for a gap in the specified rules.
-- **Fields marked `origin: added`** in `attributes.yaml` (coupling, state, mainframe, proximity, SaaS equivalent, safety-critical OT) are not in the intake steps of the instructions. They are needed by its scoring, hard-filter or behaviour rules. The UI labels them "scoring input".
+- **Fields marked `origin: added`** in `attributes.yaml` (coupling, state, mainframe, proximity, SaaS equivalent, safety-critical OT) were added to feed the scoring, hard-filter and behaviour rules. They are now listed in the instructions' intake tables too. The UI labels them "scoring input".
 - Hidden fields (`show_if` not met) are dropped from answers before scoring and saving.
 - **`frontend/dist/` is committed on purpose.** The user runs the app on Windows 8.1, which cannot install Node.js 22. After any change under `frontend/src`, run `npm run build` and commit `frontend/dist` in the same commit.
+- **Visual style** follows the Deloitte report deck: palette in `frontend/tailwind.config.js` (`brand` greens, `dblue`, `teal`, `ink` greys), Calibri, and dark-green header bands via `Card`. The logo is the text wordmark `DeloitteLogo` in `ui.tsx`. Red (`critical`) is only for "not cloud compatible" and high risks. See UI requirement 10 in the instructions.
 - **Browser support: Chrome/Edge 109 and Firefox 115** (the last versions on Windows 7/8.1). This is why the project uses Tailwind v3 rather than v4 (v4 needs oklch, `@property` and similar) and why `vite.config.ts` sets `build.target`. Avoid CSS or JS features newer than those browsers.
 
 ## Working conventions

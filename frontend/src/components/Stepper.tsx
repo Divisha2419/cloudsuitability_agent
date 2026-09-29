@@ -30,7 +30,7 @@ export default function Stepper({ steps, current, reachable, onSelect }: Props) 
                     active
                       ? "bg-brand-700 text-white ring-brand-700"
                       : done
-                        ? "bg-brand-100 text-brand-700 ring-brand-600 group-hover:bg-brand-50"
+                        ? "bg-brand-50 text-brand-700 ring-brand-600 group-hover:bg-brand-100"
                         : "bg-white text-slate-400 ring-slate-300"
                   }`}
                 >
@@ -38,14 +38,14 @@ export default function Stepper({ steps, current, reachable, onSelect }: Props) 
                 </span>
                 <span
                   className={`hidden text-sm font-medium sm:block ${
-                    active ? "text-brand-900" : enabled ? "text-slate-600" : "text-slate-400"
+                    active ? "font-bold text-ink" : enabled ? "text-ink-muted" : "text-slate-400"
                   }`}
                 >
                   {step.label}
                 </span>
               </button>
               {i < steps.length - 1 && (
-                <span className={`mx-3 h-0.5 flex-1 rounded ${i < current ? "bg-brand-600" : "bg-slate-200"}`} />
+                <span className={`mx-3 h-0.5 flex-1 rounded ${i < current ? "bg-brand-400" : "bg-ink-line"}`} />
               )}
             </li>
           );

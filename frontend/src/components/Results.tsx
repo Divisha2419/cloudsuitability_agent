@@ -68,7 +68,7 @@ export default function Results({ result, answers, savedId, onSave, onEdit, onNe
           </Button>
         </div>
       </div>
-      {error && <p className="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-800">{error}</p>}
+      {error && <p className="rounded border border-warning/40 bg-warning/10 px-4 py-2 text-sm text-[#7a4700]">{error}</p>}
 
       {/* Headline: 6R + score */}
       <div className="grid gap-6 lg:grid-cols-3">
@@ -109,8 +109,10 @@ export default function Results({ result, answers, savedId, onSave, onEdit, onNe
             </div>
           </div>
         </Card>
-        <Card title="Cloud native score" className="flex flex-col items-center justify-center">
-          <Gauge score={phase3.total} max={phase3.max} band={phase3.band} />
+        <Card title="Cloud native score">
+          <div className="flex justify-center py-4">
+            <Gauge score={phase3.total} max={phase3.max} band={phase3.band} />
+          </div>
         </Card>
       </div>
 

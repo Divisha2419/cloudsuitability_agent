@@ -3,9 +3,9 @@ import { ApiError, api } from "./api";
 import FieldInput from "./components/FieldInput";
 import Portfolio from "./components/Portfolio";
 import Results from "./components/Results";
-import ScorePreview from "./components/ScorePreview";
+import ReadinessPanel from "./components/ReadinessPanel";
 import Stepper from "./components/Stepper";
-import { Button } from "./components/ui";
+import { Button, DeloitteLogo } from "./components/ui";
 import { isVisible, screens as buildScreens, sectionErrors, visibleAnswers } from "./form";
 import type { Answers, Result, Schema } from "./types";
 
@@ -149,18 +149,24 @@ export default function App() {
 
   return (
     <div ref={topRef} className="min-h-screen">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
-          <div>
-            <h1 className="text-lg font-semibold text-brand-900">Cloud Suitability Assessment</h1>
-            <p className="text-xs text-slate-500">Hard filters → Tech stack → Cloud Native Score &amp; 6R</p>
+      <header className="border-b border-ink-line bg-white">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 sm:px-6">
+          <div className="flex items-center gap-4 py-4">
+            <DeloitteLogo className="text-[28px]" />
+            <span className="h-7 w-px bg-ink-line" aria-hidden />
+            <div>
+              <p className="text-[17px] font-bold leading-tight text-ink">Cloud Suitability Assessment</p>
+              <p className="text-xs text-ink-muted">Application disposition &amp; cloud readiness</p>
+            </div>
           </div>
-          <nav className="flex gap-1 rounded-lg bg-slate-100 p-1 text-sm">
+          <nav className="flex gap-6 self-stretch text-[15px]">
             {(["assess", "portfolio"] as View[]).map((v) => (
               <button
                 key={v}
                 onClick={() => setView(v)}
-                className={`rounded-md px-3 py-1.5 font-medium capitalize ${view === v ? "bg-white text-brand-900 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
+                className={`border-b-[3px] px-1 pt-1 font-semibold transition ${
+                  view === v ? "border-brand-400 text-ink" : "border-transparent text-ink-muted hover:text-ink"
+                }`}
               >
                 {v === "assess" ? "Assessment" : "Portfolio"}
               </button>
@@ -169,12 +175,19 @@ export default function App() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
         {view === "portfolio" ? (
           <Portfolio onOpen={open} onNew={reset} />
         ) : (
           <>
-            <div className="mb-6 rounded-xl border border-slate-200 bg-white px-4 py-4 shadow-sm sm:px-6">
+            <div className="mb-6">
+              <h1 className="text-[28px] font-bold leading-tight text-ink">Application Cloud Suitability</h1>
+              <p className="mt-1 text-[15px] text-ink-muted">
+                Capture the business and technical attributes of an application to assess its cloud readiness, 6R disposition and
+                on-premise dependencies.
+              </p>
+            </div>
+            <div className="mb-6 rounded-md border border-ink-line bg-white px-4 py-4 shadow-sm sm:px-6">
               <Stepper steps={schema.steps} current={currentStep} reachable={reachableStep} onSelect={selectStep} />
             </div>
 
@@ -182,35 +195,35 @@ export default function App() {
               <Results result={finalResult} answers={cleanAnswers} savedId={savedId} onSave={save} onEdit={() => goTo(0)} onNew={reset} />
             ) : (
               current && (
-                <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
+                <div className="grid gap-6 lg:grid-cols-[1fr_330px]">
                   <form
-                    className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
+                    className="rounded-md border border-ink-line bg-white p-5 shadow-sm sm:p-7"
                     onSubmit={(e) => {
                       e.preventDefault();
                       next();
                     }}
                     noValidate
                   >
-                    <div className="mb-5">
+                    <div className="mb-6">
                       {current.countInStep > 1 && (
-                        <p className="text-xs font-medium uppercase tracking-wide text-brand-600">
+                        <p className="text-xs font-bold uppercase tracking-wider text-brand-600">
                           Part {current.indexInStep + 1} of {current.countInStep}
                         </p>
                       )}
-                      <h2 className="text-xl font-semibold text-slate-900">{current.section.title}</h2>
-                      {current.section.description && <p className="mt-1 text-sm text-slate-500">{current.section.description}</p>}
-                      <p className="mt-1 text-xs text-slate-400">
-                        Fields marked <span className="text-critical">*</span> are required.
+                      <h2 className="text-[22px] font-bold text-ink">{current.section.title}</h2>
+                      {current.section.description && <p className="mt-1 text-[15px] text-ink-muted">{current.section.description}</p>}
+                      <p className="mt-1 text-xs text-ink-muted">
+                        Fields marked <span className="font-bold text-brand-600">*</span> are mandatory.
                       </p>
                     </div>
 
                     {Object.keys(errors).length > 0 && (
-                      <p role="alert" className="mb-4 rounded-lg bg-red-50 px-4 py-2 text-sm text-red-800">
+                      <p role="alert" className="mb-5 rounded border border-warning/40 bg-warning/10 px-4 py-2 text-sm text-[#7a4700]">
                         Please complete the highlighted fields before continuing.
                       </p>
                     )}
 
-                    <div className="space-y-5">
+                    <div className="space-y-6">
                       {current.section.fields
                         .filter((f) => isVisible(f, answers))
                         .map((f) => (
@@ -218,7 +231,7 @@ export default function App() {
                         ))}
                     </div>
 
-                    <div className="mt-8 flex items-center justify-between border-t border-slate-100 pt-5">
+                    <div className="mt-8 flex items-center justify-between border-t border-ink-line pt-5">
                       <Button type="button" variant="secondary" disabled={screenIdx === 0} onClick={() => goTo(screenIdx - 1)}>
                         ← Back
                       </Button>
@@ -227,7 +240,7 @@ export default function App() {
                   </form>
 
                   <aside className="lg:sticky lg:top-6 lg:self-start">
-                    <ScorePreview result={preview} loading={previewLoading} />
+                    <ReadinessPanel schema={schema} answers={cleanAnswers} result={preview} loading={previewLoading} />
                   </aside>
                 </div>
               )
@@ -235,10 +248,12 @@ export default function App() {
           </>
         )}
       </main>
+
+      <footer className="mx-auto max-w-7xl px-4 pb-8 text-xs text-ink-muted sm:px-6">Private and confidential</footer>
     </div>
   );
 }
 
 function Centered({ children }: { children: ReactNode }) {
-  return <div className="flex min-h-screen items-center justify-center p-6 text-center text-slate-600">{children}</div>;
+  return <div className="flex min-h-screen items-center justify-center p-6 text-center text-ink-muted">{children}</div>;
 }

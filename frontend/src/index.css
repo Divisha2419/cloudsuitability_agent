@@ -5,12 +5,11 @@
 /* Tailwind v3 is used (not v4) so the UI works in older browsers such as
    Chrome 109 / Firefox 115 on Windows 8.1. Keep these in sync with tailwind.config.js. */
 :root {
-  --color-good: #0ca30c;
-  --color-warning: #fab219;
-  --color-serious: #ec835a;
-  --color-critical: #d03b3b;
+  --color-brand: #86bc25;
+  --color-brand-dark: #046a38;
+  --color-track: #e5e5e3;
 }
 
 body {
-  @apply bg-slate-50 text-slate-800 antialiased;
+  @apply bg-[#f6f6f5] font-sans text-slate-800 antialiased;
 }

@@ -54,8 +54,11 @@ Present each field with its allowed values. Mark fields with (*) as required.
 | Application Type | Select | Industrial Automation / Manufacturing Operations Management / Business Application |
 | COTS or Custom (*) | Select | COTS / Inhouse built / Customised COTS |
 | COTS App Name, Version and Vendor | Text | (if COTS) |
+| Vendor Offers a SaaS Equivalent | Select | Yes / No / Unknown (if COTS or Customised COTS; used by 6R rule 2) |
 | Application Architecture (*) | Select | Monolithic Architecture / Service Oriented Architecture (SOA) / Microservices Architecture |
 | Source Code Available | Select | Yes / No / Partial or limited access / NA |
+| Application Coupling (*) | Select | Independent / Loosely coupled / Tightly coupled (used in Cloud Native Score) |
+| Application State (*) | Select | Stateless / Stateful (used in Cloud Native Score) |
 | Programming Language and Version | Text | e.g. Java 17, .NET 6, Python 3.11 (skip if COTS) |
 
 ---
@@ -66,6 +69,8 @@ Present each field with its allowed values. Mark fields with (*) as required.
 |---|---|---|
 | Application Hardware Dependency (*) | Select | Yes / No |
 | Hardware Details | Text | (if Yes) describe OT devices, PLCs, sensors, DCS, CNC, SCADA, robots |
+| Proximity to Physical Equipment Required (*) | Select | Yes / No (if hardware dependency = Yes; hard filter) |
+| Mainframe Dependency (*) | Select | Yes / No (hard filter and Cloud Native Score) |
 | Number of Environments | Text | count of prod + non-prod environments |
 | Operating System and Version (*) | Text | e.g. Windows Server 2022, RHEL 8.6, Ubuntu 22.04 |
 | Database Name and Version (*) | Text | e.g. MS SQL Server 2019, PostgreSQL 14, Oracle 19c |
@@ -80,6 +85,7 @@ Present each field with its allowed values. Mark fields with (*) as required.
 | Latency Requirement (*) | Select | Ultra Low Latency (<10 ms) / Low Latency (10–100 ms) / Standard (>100 ms) / Not latency sensitive |
 | Real-Time Decisioning (*) | Select | Yes / No |
 | IP-Sensitive Data | Select | Yes / No |
+| Safety-Critical OT Application (*) | Select | Yes / No — e.g. IEC 61508 certified (behaviour rule 5) |
 | Current Challenges | Text | describe pain points with current on-premise setup |
 
 ---
@@ -224,6 +230,7 @@ Apply rules in this exact priority order (first match wins):
 | 5 | Cloud Native Score 50–69 OR Phase 2 = Conditionally Cloud Ready | **Replatform** (minor optimizations) |
 | 6 | Cloud Native Score 30–49 AND (Monolithic OR Tightly Coupled OR Stateful) | **Refactor** (re-architecture needed) |
 | 7 | Cloud Native Score < 30 OR Phase 2 = Not Cloud Suitable | **Retain on-premise** (until refactored) |
+| Fallback | No rule above matched (e.g. score 30–49, Fully Cloud Ready, not monolithic/tightly coupled/stateful) | **Replatform**, flagged for manual review |
 
 **6R Definitions to include in output:**
 - **Rehost**: Move as-is to cloud (lift & shift). Minimal changes.
@@ -308,16 +315,21 @@ The web interface should implement these interaction patterns:
 3. **Conditional fields** — Hide COTS-specific fields when "Inhouse built" is selected. Hide hardware details unless hardware dependency = Yes.
 4. **Inline validation** — Highlight empty required fields before allowing progression to next section.
 5. **Tooltip/info icons** — Each field label has a hoverable tooltip showing the full definition from the questionnaire.
-6. **Live score preview** — A sidebar card updates the cloud native score in real-time as fields are filled.
+6. **Assessment Readiness side panel** — Shown next to the form on every intake screen and updated as fields are filled. It has three parts, separated by horizontal lines:
+   - **Data Completeness** — the overall percentage and a bar showing how many attributes the user has provided out of all attributes currently shown. Below it, one bar each for: Application Information, Business Attributes, Technical Attributes – Architecture, and Technical Attributes – Infrastructure & Operational. Each bar shows answered/total attributes for that group and the count of mandatory attributes completed (e.g. "Mandatory 3/4").
+   - **Technology Stack Compatibility** — one bar each for Operating System, Database, Programming Language and App/Web Server. A bar stays grey ("Awaiting input") until that component is entered, then fills using the Phase 2 rating: **green with ✓** = Cloud Ready (cloud compatible), **amber with !** = Needs Upgrade (upgrade required), **red with ✕** = Not Cloud Suitable (not cloud compatible), grey = N/A (e.g. no web server). The Programming Language bar is hidden when the application is COTS.
+   - **On-Premise Dependencies** — no bars. List an item only when the user's answer creates it: **Hardware Dependency** (hardware dependency = Yes, with the hardware details), **Latency Required** (latency = Ultra Low <10 ms), **Application To be Decommissioned** (roadmap or lifecycle = To be decommissioned, or lifecycle = Retired). Otherwise show "None identified so far".
 7. **Results dashboard** — Final page renders the structured report with a gauge chart for the score, color-coded Phase 2 table, and a highlighted 6R badge.
 8. **Export** — PDF and Excel export of the completed assessment report.
 9. **Multi-application mode** — Allow saving an application's assessment and starting a new one. Show a portfolio summary table when multiple apps are assessed.
+10. **Visual style (consulting)** — Clean, consulting-report look with the Deloitte logo at the top left. Use the Deloitte palette: Deloitte green `#86BC25` for accents and progress bars, dark green `#046A38` for primary buttons and section header bands, green `#26890D`, teal `#0D8390` and blue `#007CB0` / `#005587` for secondary elements, grey `#53565A` for secondary text and `#D0D0CE` for borders. Font: Calibri (fallback Arial). Section headers are white text on a dark-green band; page titles are large, bold and black with a one-line grey lead sentence underneath. Use red only for "Not cloud compatible" and high-severity risks, never as a theme colour. Status colours are always paired with an icon (✓ ! ✕) and a text label.
+11. **Browser support** — The interface must work in Chrome/Edge 109+ and Firefox 115+ (the last versions available on Windows 7/8.1), without requiring Node.js on the user's machine.
 
 ---
 
 ## Technology Recommendations for Hosting
 
-- **Frontend**: React or Next.js with Tailwind CSS for responsive form UI
+- **Frontend**: React with Tailwind CSS v3 for responsive form UI (v3 rather than v4 for older-browser support); the built UI is served by the backend, so running the tool needs only Python
 - **Backend**: FastAPI (Python) or Node.js Express — hosts the scoring engine
 - **Agent**: Claude API (claude-3-5-sonnet or claude-3-7-sonnet) via Anthropic SDK for conversational guidance mode
 - **Database**: PostgreSQL (store assessment records per session/user)

@@ -35,6 +35,7 @@ export interface Step {
 export interface Schema {
   steps: Step[];
   sections: Section[];
+  completeness_groups: { label: string; sections: string[] }[];
 }
 
 export type Rating = "cloud_ready" | "needs_upgrade" | "not_suitable" | "na";
@@ -88,6 +89,7 @@ export interface Result {
     notes: string[];
   };
   risks: { severity: "high" | "medium" | "low"; message: string }[];
+  on_premise_dependencies: { id: string; label: string; detail: string }[];
   six_r_definitions: Record<SixR, string>;
 }
 

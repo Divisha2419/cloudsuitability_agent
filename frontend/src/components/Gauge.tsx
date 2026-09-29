@@ -1,16 +1,7 @@
 import type { Band } from "../types";
-import { BAND_COLOR } from "./ui";
 
-// Semicircular 0–100 gauge. The track shows the four readiness bands as a
-// recessive backdrop; the filled arc and the number carry the score, and the
-// band name is always printed underneath (colour is never the only cue).
-
-const BANDS: { from: number; to: number; level: Band["level"] }[] = [
-  { from: 0, to: 40, level: "very_low" },
-  { from: 40, to: 60, level: "low" },
-  { from: 60, to: 80, level: "medium" },
-  { from: 80, to: 100, level: "high" },
-];
+// Semicircular 0–100 gauge: grey track, Deloitte-green filled arc, the score in
+// the middle and the readiness band printed underneath.
 
 const R = 80;
 const CX = 100;
@@ -32,19 +23,8 @@ export default function Gauge({ score, max = 100, band, size = 220 }: { score: n
   return (
     <figure className="flex flex-col items-center" aria-label={`Cloud Native Score ${score} of ${max}, ${band.label}`}>
       <svg viewBox="-14 0 228 110" width={size} role="img" aria-hidden>
-        {BANDS.map((b) => (
-          <path
-            key={b.level}
-            d={arc(b.from + (b.from ? 0.8 : 0), b.to - (b.to < 100 ? 0.8 : 0))}
-            stroke={BAND_COLOR[b.level]}
-            strokeOpacity={0.22}
-            strokeWidth={14}
-            fill="none"
-          />
-        ))}
-        {value > 0 && (
-          <path d={arc(0, value)} stroke={BAND_COLOR[band.level]} strokeWidth={14} strokeLinecap="round" fill="none" />
-        )}
+        <path d={arc(0, 100)} stroke="var(--color-track)" strokeWidth={14} fill="none" />
+        {value > 0 && <path d={arc(0, value)} stroke="var(--color-brand)" strokeWidth={14} strokeLinecap="round" fill="none" />}
         {[0, 40, 60, 80, 100].map((t) => {
           const [x, y] = point(t, R + 16);
           return (
@@ -53,14 +33,14 @@ export default function Gauge({ score, max = 100, band, size = 220 }: { score: n
             </text>
           );
         })}
-        <text x={CX} y={CY - 12} textAnchor="middle" className="fill-slate-900 text-[34px] font-bold">
+        <text x={CX} y={CY - 12} textAnchor="middle" className="fill-black text-[34px] font-bold">
           {score}
         </text>
         <text x={CX} y={CY + 6} textAnchor="middle" className="fill-slate-500 text-[9px]">
           out of {max}
         </text>
       </svg>
-      <figcaption className="mt-1 text-center text-sm font-semibold text-slate-700">{band.label}</figcaption>
+      <figcaption className="mt-1 text-center text-sm font-bold text-brand-700">{band.label}</figcaption>
     </figure>
   );
 }

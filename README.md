@@ -8,7 +8,7 @@ Application owners work through a short, section-by-section form: application in
 2. **Tech stack suitability**: rates the OS, database, programming language and app/web server as Cloud Ready, Needs Upgrade or Not Cloud Suitable.
 3. **Cloud Native Score (0–100) and 6R recommendation**: Rehost, Replatform, Refactor, Retire, Replace or Retain.
 
-Features: a live score sidebar, a results dashboard (gauge, colour-coded tech stack table, 6R badge, risks), PDF and Excel export, a saved-assessment portfolio, and batch assessment from a CSV/Excel upload.
+Features: an assessment readiness side panel (data completeness, tech stack compatibility, on-premise dependencies), a results dashboard (gauge, colour-coded tech stack table, 6R badge, risks), PDF and Excel export, a saved-assessment portfolio, and batch assessment from a CSV/Excel upload.
 
 The full agent instructions are in [`prompts/system_prompt.md`](prompts/system_prompt.md).
 

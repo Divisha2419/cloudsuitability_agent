@@ -28,6 +28,14 @@ steps:
     label: Results
     sections: []
 
+# Bars in the "Data Completeness" side panel. Each bar counts how many of the
+# currently visible fields in its sections the user has answered.
+completeness_groups:
+  - {label: Application Information, sections: [application_info]}
+  - {label: Business Attributes, sections: [business]}
+  - {label: Technical Attributes – Architecture, sections: [tech_architecture]}
+  - {label: Technical Attributes – Infrastructure & Operational, sections: [tech_infrastructure, tech_operational]}
+
 sections:
   - id: application_info
     title: Application Info
