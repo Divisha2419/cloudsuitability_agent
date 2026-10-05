@@ -4,6 +4,7 @@ import pytest
 
 # A complete, cloud-friendly application; tests override individual answers.
 BASE = {
+    "project": "ABB Edge China",
     "app_name": "Order Portal",
     "app_id": "APP-001",
     "app_description": "Customer order entry",

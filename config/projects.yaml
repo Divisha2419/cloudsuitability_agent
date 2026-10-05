@@ -1,0 +1,7 @@
+# Projects / clients shown in the "Project / Client" dropdown on the first
+# assessment screen, and in the project selector on the Admin page.
+# To add a project: add a line below, then restart the app.
+projects:
+  - ABB Edge China
+  - SDD
+  - Indian Bank

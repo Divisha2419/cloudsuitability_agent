@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { api, download, slug } from "../api";
 import type { Answers, Result, SixR } from "../types";
 import Gauge from "./Gauge";
@@ -7,10 +7,14 @@ import { Button, Card, RatingPill, SixRBadge } from "./ui";
 interface Props {
   result: Result;
   answers: Answers;
-  savedId: number | null;
-  onSave: () => Promise<void>;
-  onEdit: () => void;
-  onNew: () => void;
+  /** Admin: return to the project table. */
+  onBack?: () => void;
+  /** User: go back to the form to change answers (re-submitting replaces the saved result). */
+  onEdit?: () => void;
+  /** User: start a new assessment. */
+  onNew?: () => void;
+  /** Shown above the report, e.g. "Saved to project ABB Edge China". */
+  notice?: ReactNode;
 }
 
 const SEVERITY = {
@@ -21,7 +25,7 @@ const SEVERITY = {
 
 const SIX_R_ORDER: SixR[] = ["rehost", "replatform", "refactor", "retire", "replace", "retain"];
 
-export default function Results({ result, answers, savedId, onSave, onEdit, onNew }: Props) {
+export default function Results({ result, answers, onBack, onEdit, onNew, notice }: Props) {
   const { application: app, phase1, phase2, phase3, recommendation: rec, risks } = result;
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -43,37 +47,44 @@ export default function Results({ result, answers, savedId, onSave, onEdit, onNe
 
   return (
     <div className="space-y-6">
+      {onBack && (
+        <Button variant="secondary" onClick={onBack}>
+          ← Back to applications
+        </Button>
+      )}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
+          {app.project && <p className="text-xs font-bold uppercase tracking-wider text-brand-600">{app.project}</p>}
           <h2 className="text-2xl font-semibold text-slate-900">{app.name}</h2>
           <p className="text-sm text-slate-500">
             {app.id && <>ID {app.id} · </>}Assessed by {app.manager} · {app.date}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="secondary" onClick={onEdit}>
-            Edit answers
-          </Button>
+          {onEdit && (
+            <Button variant="secondary" onClick={onEdit}>
+              Edit answers
+            </Button>
+          )}
           <Button variant="secondary" disabled={!!busy} onClick={() => run("pdf", async () => download(await api.pdf(answers), `${base}.pdf`))}>
             {busy === "pdf" ? "Preparing…" : "Export PDF"}
           </Button>
           <Button variant="secondary" disabled={!!busy} onClick={() => run("xlsx", async () => download(await api.xlsx(answers), `${base}.xlsx`))}>
             {busy === "xlsx" ? "Preparing…" : "Export Excel"}
           </Button>
-          <Button disabled={!!busy} onClick={() => run("save", onSave)}>
-            {busy === "save" ? "Saving…" : savedId ? "Update in portfolio" : "Save to portfolio"}
-          </Button>
-          <Button variant="ghost" onClick={onNew}>
-            + New assessment
-          </Button>
+          {onNew && <Button onClick={onNew}>+ New assessment</Button>}
         </div>
       </div>
+      {notice}
       {error && <p className="rounded border border-warning/40 bg-warning/10 px-4 py-2 text-sm text-[#7a4700]">{error}</p>}
 
       {/* Headline: 6R + score */}
       <div className="grid gap-6 lg:grid-cols-3">
         <Card title="6R recommendation" className="lg:col-span-2">
-          <SixRBadge code={rec.code} headline={rec.headline} large />
+          <div className="flex flex-wrap items-center gap-3">
+            <SixRBadge code={rec.code} headline={rec.headline} large />
+            <RatingPill rating={result.cloud_suitability.suitable ? "cloud_ready" : "na"} label={result.cloud_suitability.label} />
+          </div>
           <p className="mt-3 text-sm text-slate-600">{rec.definition}</p>
           {phase1.triggered && (
             <p className="mt-2 text-xs text-slate-500">

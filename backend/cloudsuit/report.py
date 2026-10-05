@@ -17,6 +17,7 @@ def text_report(result: dict) -> str:
         "║         CLOUD SUITABILITY ASSESSMENT REPORT      ║",
         "╚══════════════════════════════════════════════════╝",
         "",
+        f"Project: {app.get('project') or '—'}",
         f"Application: {app['name'] or '—'} | ID: {app['id'] or '—'}",
         f"Assessed by: {app['manager'] or '—'} | Date: {app['date']}",
         "",
@@ -41,6 +42,7 @@ def text_report(result: dict) -> str:
     lines += ["", f"{'TOTAL SCORE':<20}: {p3['total']}/{p3['max']}  →  {p3['band']['label']}", ""]
 
     lines += _section("6R RECOMMENDATION")
+    lines += [f"Cloud Suitability Result: {result['cloud_suitability']['label']}"]
     lines += [f"Recommendation:  ★ {rec['headline']}", f"  {rec['definition']}", "", "Rationale:"]
     lines += [f"  • {r}" for r in rec["rationale"]]
     lines += [f"  ! {n}" for n in rec["notes"]]

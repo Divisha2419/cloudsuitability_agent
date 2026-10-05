@@ -20,6 +20,7 @@ card when assessment is complete.
 
 ### Step 0 – Welcome
 Greet the user. Explain the three-phase process. Ask for:
+- Project / Client (select, mandatory — from the configured project list, e.g. ABB Edge China, SDD, Indian Bank)
 - Application Name (text, mandatory)
 - Application ID (text, mandatory)
 - Application Description (text)
@@ -321,7 +322,10 @@ The web interface should implement these interaction patterns:
    - **On-Premise Dependencies** — no bars. List an item only when the user's answer creates it: **Hardware Dependency** (hardware dependency = Yes, with the hardware details), **Latency Required** (latency = Ultra Low <10 ms), **Application To be Decommissioned** (roadmap or lifecycle = To be decommissioned, or lifecycle = Retired). Otherwise show "None identified so far".
 7. **Results dashboard** — Final page renders the structured report with a gauge chart for the score, color-coded Phase 2 table, and a highlighted 6R badge.
 8. **Export** — PDF and Excel export of the completed assessment report.
-9. **Multi-application mode** — Allow saving an application's assessment and starting a new one. Show a portfolio summary table when multiple apps are assessed.
+9. **User and Admin views** — The top navigation has two views:
+   - **User** — takes the assessment. Clicking "Generate report" saves the assessment to the database automatically under its Project / Client. Assessing the same Application ID again in the same project replaces the earlier result. The user can edit answers and regenerate, or start a new assessment.
+   - **Admin** — protected by a username and password. The admin first selects a project; all applications assessed in that project are then loaded from the database. Above the table, a summary card shows the total number of applications, a donut chart of Cloud Suitable vs Not Cloud Suitable, and the count per 6R disposition. The table shows: S.No, Application ID, Application Name, Cloud Suitability Result, 6R, Cloud Native Score (only for cloud-suitable applications, otherwise blank) and Rationale (2–3 lines from the 6R rationale). Clicking a row opens the full report for that application (the same page the user sees after "Generate report") with a Back button. The admin can delete an application after an "Are you sure?" confirmation, and export the project table to Excel.
+   - **Cloud Suitability Result**: Rehost, Replatform, Refactor and Replace = **Cloud Suitable**; Retire and Retain = **Not Cloud Suitable**.
 10. **Visual style (consulting)** — Clean, consulting-report look with the Deloitte logo at the top left. Use the Deloitte palette: Deloitte green `#86BC25` for accents and progress bars, dark green `#046A38` for primary buttons and section header bands, green `#26890D`, teal `#0D8390` and blue `#007CB0` / `#005587` for secondary elements, grey `#53565A` for secondary text and `#D0D0CE` for borders. Font: Calibri (fallback Arial). Section headers are white text on a dark-green band; page titles are large, bold and black with a one-line grey lead sentence underneath. Use red only for "Not cloud compatible" and high-severity risks, never as a theme colour. Status colours are always paired with an icon (✓ ! ✕) and a text label.
 11. **Browser support** — The interface must work in Chrome/Edge 109+ and Firefox 115+ (the last versions available on Windows 7/8.1), without requiring Node.js on the user's machine.
 12. **Additional Information box** — At the bottom of every intake screen except Application Info, after all attributes, show an optional free-text box titled "Additional Information" where users can record anything they could not enter in the attributes (missing details, assumptions, context). Save it with the assessment and include it in the results page, PDF, Excel and text report.
@@ -354,5 +358,5 @@ The web interface should implement these interaction patterns:
 4. Always explain the reasoning behind the 6R recommendation in plain language.
 5. Never recommend cloud migration for safety-critical OT applications (e.g., IEC 61508 certified) without flagging it as requiring a dedicated OT cloud security review.
 6. Allow users to edit any previous section before generating the final report.
-7. Support batch mode: accept a CSV/Excel upload of multiple applications and output a portfolio-level assessment with a ranked table.
+7. Each assessment belongs to one Project / Client; the Admin view reports per project (see UI requirement 9). Batch CSV/Excel upload is not offered.
 

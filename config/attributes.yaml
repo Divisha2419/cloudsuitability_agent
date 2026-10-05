@@ -52,6 +52,13 @@ sections:
     title: Application Info
     description: Tell us which application is being assessed and who owns it.
     fields:
+      - id: project
+        label: Project / Client
+        type: select
+        required: true
+        help: The engagement this application belongs to. The list comes from config/projects.yaml.
+        origin: instructions
+        options_from: projects   # options are filled from config/projects.yaml
       - id: app_name
         label: Application Name
         type: text

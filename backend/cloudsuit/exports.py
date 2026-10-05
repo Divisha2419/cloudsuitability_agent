@@ -1,4 +1,4 @@
-"""PDF and Excel exports of single assessments and of the portfolio."""
+"""PDF and Excel exports of single assessments and of a project's application table."""
 
 from __future__ import annotations
 
@@ -8,7 +8,6 @@ from xml.sax.saxutils import escape as e
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
-from openpyxl.worksheet.datavalidation import DataValidation
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet
@@ -53,11 +52,13 @@ def assessment_xlsx(result: dict) -> bytes:
     ws.title = "Summary"
     app, rec, p3 = result["application"], result["recommendation"], result["phase3"]
     rows = [
+        ("Project / Client", app.get("project", "")),
         ("Application", app["name"]), ("Application ID", app["id"]), ("Assessed by", app["manager"]),
         ("Date", app["date"]), ("Phase 1 – Hard Filter", result["phase1"]["status"]),
         *[("Hard filter reason", f["reason"]) for f in result["phase1"]["filters"]],
         ("Phase 2 – Tech Stack", result["phase2"]["overall_label"]),
         ("Cloud Native Score", f"{p3['total']}/{p3['max']}"), ("Readiness Band", p3["band"]["label"]),
+        ("Cloud Suitability Result", result["cloud_suitability"]["label"]),
         ("6R Recommendation", rec["headline"]), ("Definition", rec["definition"]),
         *[("Rationale", r) for r in rec["rationale"]], *[("Note", n) for n in rec["notes"]],
         *[("Next step", s) for s in rec["next_steps"]],
@@ -99,66 +100,35 @@ def assessment_xlsx(result: dict) -> bytes:
     return _to_bytes(wb)
 
 
-PORTFOLIO_COLUMNS = ["Rank", "Application", "ID", "Manager", "Score", "Band", "Phase 1", "Tech Stack", "6R Recommendation"]
+PROJECT_COLUMNS = ["S.No", "Application ID", "Application Name", "Cloud Suitability Result", "6R",
+                   "Cloud Native Score", "Rationale"]
 
 
-def portfolio_rows(results: list[dict]) -> list[list]:
-    ranked = sorted(results, key=lambda r: r["phase3"]["total"], reverse=True)
-    return [
-        [
-            i, r["application"]["name"], r["application"]["id"], r["application"]["manager"],
-            r["phase3"]["total"], r["phase3"]["band"]["label"], r["phase1"]["status"],
-            r["phase2"]["overall_label"], r["recommendation"]["headline"],
-        ]
-        for i, r in enumerate(ranked, 1)
-    ]
-
-
-def portfolio_xlsx(results: list[dict]) -> bytes:
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "Portfolio"
-    _header(ws, PORTFOLIO_COLUMNS)
-    for row in portfolio_rows(results):
-        ws.append(row)
-    _autosize(ws)
-
-    ws = wb.create_sheet("6R Summary")
-    _header(ws, ["6R Recommendation", "Applications"])
-    counts: dict[str, int] = {}
-    for r in results:
-        counts[r["recommendation"]["headline"]] = counts.get(r["recommendation"]["headline"], 0) + 1
-    for k, v in sorted(counts.items(), key=lambda kv: -kv[1]):
-        ws.append([k, v])
-    _autosize(ws)
-    return _to_bytes(wb)
-
-
-def batch_template_xlsx() -> bytes:
-    """Upload template: one column per attribute, dropdowns for select fields."""
+def project_xlsx(project: str, rows: list[dict]) -> bytes:
+    """The Admin page table for one project, plus a summary sheet."""
     wb = Workbook()
     ws = wb.active
     ws.title = "Applications"
-    all_fields = list(fields().values())
-    _header(ws, [f["label"] + (" (*)" if f.get("required") else "") for f in all_fields])
-    for i, f in enumerate(all_fields, 1):
-        col = get_column_letter(i)
-        ws.column_dimensions[col].width = max(16, len(f["label"]) + 4)
-        if f["type"] == "select":
-            values = ",".join(str(o["value"]) for o in f["options"])
-            dv = DataValidation(type="list", formula1=f'"{values}"', allow_blank=True)
-            ws.add_data_validation(dv)
-            dv.add(f"{col}2:{col}500")
-    ref = wb.create_sheet("Allowed values")
-    _header(ref, ["Column", "Field ID", "Required", "Allowed values / example", "Shown only when"])
-    for f in all_fields:
-        allowed = " | ".join(str(o["value"]) for o in f.get("options", [])) or f.get("placeholder", "free text")
-        cond = f.get("show_if")
-        ref.append([
-            f["label"], f["id"], "Yes" if f.get("required") else "No", allowed,
-            f"{fields()[cond['field']]['label']} is {' or '.join(cond['in'])}" if cond else "",
-        ])
-    _autosize(ref)
+    _header(ws, PROJECT_COLUMNS)
+    for r in rows:
+        ws.append([r["s_no"], r["app_id"], r["app_name"], r["suitability"], r["recommendation_headline"],
+                   r["score"] if r["score"] is not None else "", "\n".join(r["rationale"])])
+        ws.cell(ws.max_row, 4).fill = PatternFill("solid", fgColor=RATING_FILL["cloud_ready" if r["suitable"] else "na"])
+    _autosize(ws)
+
+    ws = wb.create_sheet("Summary")
+    _header(ws, ["Item", "Value"])
+    suitable = sum(r["suitable"] for r in rows)
+    ws.append(["Project", project])
+    ws.append(["Total applications", len(rows)])
+    ws.append(["Cloud Suitable", suitable])
+    ws.append(["Not Cloud Suitable", len(rows) - suitable])
+    counts: dict[str, int] = {}
+    for r in rows:
+        counts[r["recommendation_headline"]] = counts.get(r["recommendation_headline"], 0) + 1
+    for k, v in sorted(counts.items(), key=lambda kv: -kv[1]):
+        ws.append([f"6R: {k}", v])
+    _autosize(ws)
     return _to_bytes(wb)
 
 
@@ -180,6 +150,7 @@ def assessment_pdf(result: dict) -> bytes:
     app, p1, p2, p3, rec = (result[k] for k in ("application", "phase1", "phase2", "phase3", "recommendation"))
     story = [
         Paragraph("Cloud Suitability Assessment Report", ss["Title"]),
+        Paragraph(f"<b>Project / Client:</b> {e(app.get('project') or '—')}", body),
         Paragraph(f"<b>Application:</b> {e(app['name'] or '—')} &nbsp;|&nbsp; <b>ID:</b> {e(app['id'] or '—')}", body),
         Paragraph(f"<b>Assessed by:</b> {e(app['manager'] or '—')} &nbsp;|&nbsp; <b>Date:</b> {app['date']}", body),
         Spacer(1, 6),
@@ -207,6 +178,7 @@ def assessment_pdf(result: dict) -> bytes:
         table([["Recommendation", "Cloud Native Score", "Band"],
                [p(f"<b>★ {e(rec['headline'])}</b>"), f"{p3['total']}/{p3['max']}", p(e(p3["band"]["label"]))]],
               [70 * mm, 40 * mm, 64 * mm]),
+        Spacer(1, 4), p(f"<b>Cloud Suitability Result:</b> {e(result['cloud_suitability']['label'])}"),
         Spacer(1, 4), p(e(rec["definition"])), Spacer(1, 4), p("<b>Rationale</b>"),
         *[p(f"• {e(r)}") for r in rec["rationale"]], *[p(f"<b>!</b> {e(n)}") for n in rec["notes"]],
         Spacer(1, 4), p("<b>Next steps</b>"), *[p(f"{i}. {e(s)}") for i, s in enumerate(rec["next_steps"], 1)],

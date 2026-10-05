@@ -1,4 +1,4 @@
-"""FastAPI app: schema, live scoring, saved assessments, exports and batch upload.
+"""FastAPI app: schema, live scoring, submitting assessments, exports and the Admin API.
 
 Run with:  uvicorn cloudsuit.api:app --reload   (from the backend/ directory)
 If frontend/dist exists (after `npm run build`), it is served at /.
@@ -12,16 +12,16 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import batch, exports
+from . import auth, exports
 from .engine import assess
 from .report import text_report
-from .schema import CONFIG_DIR, REPO_ROOT, attributes_config, validate
+from .schema import CONFIG_DIR, REPO_ROOT, attributes_config, projects, validate
 from .storage import Store
 
 app = FastAPI(title="Cloud Suitability Assessment", version="0.1.0")
@@ -100,92 +100,94 @@ def post_report_xlsx(body: AnswersIn) -> Response:
     return _download(exports.assessment_xlsx(result), XLSX, name)
 
 
-# --------------------------------------------------------------------------- saved assessments
+# --------------------------------------------------------------------------- user: submit
 
 
-@app.get("/api/assessments")
-def list_assessments() -> list[dict]:
-    return [a.summary() for a in store().list()]
+@app.get("/api/projects")
+def get_projects() -> list[str]:
+    return projects()
 
 
 @app.post("/api/assessments", status_code=201)
-def create_assessment(body: AnswersIn) -> dict:
+def submit_assessment(body: AnswersIn) -> dict:
+    """Save a completed assessment ("Generate report"). Re-assessing the same
+    Application ID in the same project replaces the earlier result."""
     result = _complete_result(body.answers)
-    row = store().save(result["answers"], result)
-    return {"id": row.id, "summary": row.summary()}
+    row = store().upsert(result["answers"], result)
+    return {"id": row.id, "result": result}
 
 
-@app.get("/api/assessments/{assessment_id}")
-def get_assessment(assessment_id: int) -> dict:
+# --------------------------------------------------------------------------- admin
+
+
+class LoginIn(BaseModel):
+    username: str
+    password: str
+
+
+@app.post("/api/admin/login")
+def admin_login(body: LoginIn) -> dict:
+    token = auth.login(body.username, body.password)
+    if token is None:
+        raise HTTPException(401, "Incorrect username or password")
+    return {"token": token}
+
+
+@app.post("/api/admin/logout", status_code=204)
+def admin_logout(token: str = Depends(auth.require_admin)) -> Response:
+    auth.logout(token)
+    return Response(status_code=204)
+
+
+@app.get("/api/admin/projects", dependencies=[Depends(auth.require_admin)])
+def admin_projects() -> list[dict]:
+    """Configured projects plus any others found in the database (e.g. "Unassigned"), with counts."""
+    counts = store().project_counts()
+    names = projects() + sorted(p for p in counts if p not in projects())
+    return [{"name": p, "count": counts.get(p, 0)} for p in names]
+
+
+def _project_rows(project: str) -> list[dict]:
+    return [{"s_no": i, **a.row()} for i, a in enumerate(store().list(project), 1)]
+
+
+@app.get("/api/admin/assessments", dependencies=[Depends(auth.require_admin)])
+def admin_assessments(project: str) -> dict:
+    rows = _project_rows(project)
+    six_r: dict[str, int] = {}
+    for r in rows:
+        six_r[r["recommendation"]] = six_r.get(r["recommendation"], 0) + 1
+    suitable = sum(r["suitable"] for r in rows)
+    return {
+        "project": project,
+        "total": len(rows),
+        "suitable": suitable,
+        "not_suitable": len(rows) - suitable,
+        "six_r": six_r,
+        "rows": rows,
+    }
+
+
+@app.get("/api/admin/assessments/{assessment_id}", dependencies=[Depends(auth.require_admin)])
+def admin_assessment(assessment_id: int) -> dict:
     row = store().get(assessment_id)
     if row is None:
         raise HTTPException(404, "Assessment not found")
-    return {"id": row.id, "answers": row.answers, "result": row.result}
+    # Re-assess so older saved results pick up fields added since (e.g. cloud_suitability).
+    return {"id": row.id, "answers": row.answers, "result": assess(row.answers)}
 
 
-@app.put("/api/assessments/{assessment_id}")
-def update_assessment(assessment_id: int, body: AnswersIn) -> dict:
-    result = _complete_result(body.answers)
-    row = store().save(result["answers"], result, assessment_id)
-    if row is None:
-        raise HTTPException(404, "Assessment not found")
-    return {"id": row.id, "summary": row.summary()}
-
-
-@app.delete("/api/assessments/{assessment_id}", status_code=204)
-def delete_assessment(assessment_id: int) -> Response:
+@app.delete("/api/admin/assessments/{assessment_id}", status_code=204, dependencies=[Depends(auth.require_admin)])
+def admin_delete(assessment_id: int) -> Response:
     if not store().delete(assessment_id):
         raise HTTPException(404, "Assessment not found")
     return Response(status_code=204)
 
 
-@app.get("/api/portfolio/export.xlsx")
-def export_portfolio() -> Response:
-    results = [a.result for a in store().list()]
-    return _download(exports.portfolio_xlsx(results), XLSX, "cloud_suitability_portfolio.xlsx")
-
-
-# --------------------------------------------------------------------------- batch
-
-
-@app.get("/api/batch/template.xlsx")
-def batch_template_xlsx() -> Response:
-    return _download(exports.batch_template_xlsx(), XLSX, "cloud_suitability_batch_template.xlsx")
-
-
-@app.get("/api/batch/template.csv")
-def batch_template_csv() -> Response:
-    return _download(batch.template_csv().encode(), "text/csv", "cloud_suitability_batch_template.csv")
-
-
-@app.post("/api/batch")
-async def post_batch(file: UploadFile = File(...), save: bool = True) -> dict:
-    """Assess every row. Complete rows are saved to the portfolio when save=true."""
-    try:
-        entries = batch.assess_batch(file.filename or "", await file.read())
-    except batch.BatchError as exc:
-        raise HTTPException(400, str(exc)) from exc
-    rows = []
-    for e in entries:
-        saved_id = None
-        if save and not e["errors"]:
-            saved_id = store().save(e["result"]["answers"], e["result"]).id
-        rows.append({
-            "row": e["row"],
-            "app_name": e["result"]["application"]["name"],
-            "errors": e["errors"],
-            "saved_id": saved_id,
-            "score": e["result"]["phase3"]["total"],
-            "band": e["result"]["phase3"]["band"],
-            "phase1": e["result"]["phase1"]["status"],
-            "phase2": e["result"]["phase2"]["overall_label"],
-            "recommendation": e["result"]["recommendation"]["code"],
-            "recommendation_headline": e["result"]["recommendation"]["headline"],
-        })
-    valid = [r for r in rows if not r["errors"]]
-    ranked = sorted(valid, key=lambda r: r["score"], reverse=True)
-    return {"total": len(rows), "assessed": len(valid), "ranked": ranked,
-            "rejected": [r for r in rows if r["errors"]]}
+@app.get("/api/admin/export.xlsx", dependencies=[Depends(auth.require_admin)])
+def admin_export(project: str) -> Response:
+    rows = _project_rows(project)
+    return _download(exports.project_xlsx(project, rows), XLSX, f"cloud_suitability_{_slug(project)}.xlsx")
 
 
 # --------------------------------------------------------------------------- branding

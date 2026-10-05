@@ -150,14 +150,18 @@ def test_text_report_has_all_sections(answers):
     assert "TOTAL SCORE         : 95/100" in text
 
 
-def test_example_portfolio_covers_each_outcome():
-    from cloudsuit.batch import assess_batch
-    from cloudsuit.schema import REPO_ROOT
+def test_example_applications_cover_each_outcome():
+    import csv
 
-    path = REPO_ROOT / "examples" / "sample_applications.csv"
-    entries = assess_batch(path.name, path.read_bytes())
-    got = {e["result"]["application"]["name"]: e["result"]["recommendation"]["code"] for e in entries}
-    assert all(not e["errors"] for e in entries)
+    from cloudsuit.schema import REPO_ROOT, validate
+
+    with open(REPO_ROOT / "examples" / "sample_applications.csv", encoding="utf-8") as fh:
+        rows = list(csv.DictReader(fh))
+    got = {}
+    for row in rows:
+        answers = {k: v for k, v in row.items() if v}
+        assert validate(answers)[1] == {}, row["app_name"]
+        got[row["app_name"]] = assess(answers)["recommendation"]["code"]
     assert got == {
         "Order Portal": "rehost",
         "Legacy HR": "refactor",
@@ -202,3 +206,15 @@ def test_additional_info_fields_and_report(answers):
     r = assess(answers)
     assert r["additional_info"] == [{"section": "Technical Attributes — Infrastructure", "text": "DB version to be confirmed"}]
     assert "ADDITIONAL INFORMATION" in text_report(r)
+
+
+def test_cloud_suitability_from_6r(answers):
+    from cloudsuit.engine import cloud_suitability
+
+    for code in ("rehost", "replatform", "refactor", "replace"):
+        assert cloud_suitability(code)["suitable"], code
+    for code in ("retire", "retain"):
+        assert cloud_suitability(code) == {"suitable": False, "label": "Not Cloud Suitable"}
+    r = assess(answers)
+    assert r["application"]["project"] == "ABB Edge China"
+    assert "Cloud Suitability Result: Cloud Suitable" in text_report(r)

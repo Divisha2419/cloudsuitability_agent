@@ -1,0 +1,6 @@
+# Login for the Admin page.
+# PROTOTYPE ONLY: these credentials are stored in plain text and committed to
+# GitHub. Change them (and stop committing this file) before real client use.
+# Restart the app after editing.
+username: admin
+password: admin

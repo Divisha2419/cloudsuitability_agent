@@ -15,16 +15,18 @@ prompts/system_prompt.md        Agent instructions (verbatim, do not edit withou
 config/attributes.yaml          All intake fields: steps, sections, types, options, required, tooltips, show_if
 config/tech_stack_ratings.yaml  Phase 2 lookup tables as ordered regex rules
 config/scoring_rubric.yaml      Phase 3 weights/points, score bands, 6R definitions and next steps
+config/projects.yaml            Project / Client dropdown options (first screen and Admin page)
+config/admin.yaml               Admin page username/password (plain text; prototype only — committed on purpose)
 config/branding/                Optional logo.svg/.png shown top-left (falls back to the text wordmark)
 backend/cloudsuit/              Python package (FastAPI)
   schema.py      loads config; normalises answers (select accepts value or label); validation; show_if
   techstack.py   Phase 2 rating of free-text OS/DB/language/server, plus input checks (missing version, spelling, unrecognised)
   engine.py      phase1 / phase2 / phase3 / recommend (6R) / risks / assess()
   report.py      text report in the instructions' "Output Report Format"
-  exports.py     PDF (reportlab) and Excel (openpyxl) exports; batch upload template
-  batch.py       CSV/XLSX batch upload parsing
-  storage.py     SQLAlchemy store for saved assessments (SQLite default, DATABASE_URL for Postgres)
-  api.py         HTTP API; also serves frontend/dist when built
+  exports.py     PDF (reportlab) and Excel (openpyxl) exports; Admin project table export
+  storage.py     SQLAlchemy store; upsert by (project, app_id); adds missing columns to older SQLite files
+  auth.py        Admin login: in-memory bearer tokens (8 h); credentials from config/admin.yaml
+  api.py         HTTP API (public: schema/assess/submit/reports; /api/admin/*: login-protected); serves frontend/dist
 backend/tests/                  pytest suite (engine rules + API)
 frontend/                       React 19 + TypeScript + Vite + Tailwind v3 UI (built output committed in frontend/dist)
 examples/sample_applications.csv  one application per 6R outcome (also used by a test)
@@ -52,11 +54,12 @@ cd frontend && npm run build
 
 ## How things fit together
 
-- **Config drives everything.** The UI fetches `config/attributes.yaml` through `GET /api/schema` and renders forms from it. The batch template and validation are built from the same file. To add or change an attribute, edit the YAML. Code changes are only needed when the attribute feeds scoring or rules.
+- **Config drives everything.** The UI fetches `config/attributes.yaml` through `GET /api/schema` and renders forms from it. Validation is built from the same file; `options_from: projects` fills a dropdown from `config/projects.yaml`. To add or change an attribute, edit the YAML. Code changes are only needed when the attribute feeds scoring or rules.
 - **Scoring runs only on the backend.** The Assessment Readiness side panel (`frontend/src/components/ReadinessPanel.tsx`) calls `POST /api/assess` (debounced) with partial answers and shows three parts: Data Completeness (bars per `completeness_groups` in `attributes.yaml`, counted on the client), Technology Stack Compatibility (Phase 2 ratings from the backend), and On-Premise Dependencies (`engine.on_premise_dependencies()`). `frontend/src/form.ts` only mirrors `show_if` and required checks so validation feels instant.
 - **The 6R rules** live in `engine.recommend()` in the priority order from the instructions (first match wins). Rule `0` is a fallback for a gap in the specified rules.
 - **Fields marked `origin: added`** in `attributes.yaml` (coupling, state, mainframe, proximity, SaaS equivalent, safety-critical OT) were added to feed the scoring, hard-filter and behaviour rules. They are now listed in the instructions' intake tables too. The UI labels them "scoring input".
 - Hidden fields (`show_if` not met) are dropped from answers before scoring and saving.
+- **User / Admin.** `App.tsx` has two views. User: "Generate report" calls `POST /api/assessments`, which saves (replacing the same project + Application ID). Admin (`components/Admin.tsx`): login → project → summary (donut + 6R bars) → table → full report via `Results` with `onBack`. "Cloud Suitable" comes from `cloud_suitability` in `scoring_rubric.yaml` (Rehost/Replatform/Refactor/Replace); the score is only shown for suitable apps. Batch upload was removed on purpose.
 - **Additional Information boxes** are not in the YAML sections: `schema.attributes_config()` appends a `<section>_additional_info` textarea (`additional: true`) to every section when `additional_info.enabled` is true, except those in `additional_info.exclude_sections` (currently `application_info`). They are saved and exported (`result.additional_info`) but excluded from Data Completeness.
 - **Tech-stack input checks** use the `products` catalogue in `tech_stack_ratings.yaml` (canonical name, aliases, `needs_version`). `techstack.check()` returns `ok | missing_version | suggestion | unrecognized` per component in `phase2.components[].check`. All messages show inline under the field: suggestions/unrecognised while typing, missing versions once the user leaves the field (`touched` in `App.tsx`). Next is blocked once while any are open (clicking Next again with the same entries continues). Spelling suggestions use difflib with a 0.8 cutoff, aliases of 4+ chars and the same first letter.
 - **Attribute explanations** (`help` in the YAML) are shown under each label, not as tooltips.

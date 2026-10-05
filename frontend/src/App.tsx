@@ -1,7 +1,7 @@
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { ApiError, api } from "./api";
 import FieldInput from "./components/FieldInput";
-import Portfolio from "./components/Portfolio";
+import Admin from "./components/Admin";
 import Results from "./components/Results";
 import ReadinessPanel from "./components/ReadinessPanel";
 import Stepper from "./components/Stepper";
@@ -9,7 +9,7 @@ import { Button, DeloitteLogo } from "./components/ui";
 import { TECH_FIELDS, isVisible, normText, screens as buildScreens, sectionErrors, visibleAnswers } from "./form";
 import type { Answers, Result, Schema, TechCheck } from "./types";
 
-type View = "assess" | "portfolio";
+type View = "user" | "admin";
 
 interface TechAlert {
   /** The answers the alert was shown for; clicking Next again with the same answers continues. */
@@ -20,7 +20,7 @@ interface TechAlert {
 export default function App() {
   const [schema, setSchema] = useState<Schema | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [view, setView] = useState<View>("assess");
+  const [view, setView] = useState<View>("user");
   const [answers, setAnswers] = useState<Answers>({});
   const [screenIdx, setScreenIdx] = useState(0); // === screens.length means Results
   const [furthest, setFurthest] = useState(0);
@@ -28,7 +28,7 @@ export default function App() {
   const [preview, setPreview] = useState<Result | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [finalResult, setFinalResult] = useState<Result | null>(null);
-  const [savedId, setSavedId] = useState<number | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [techAlert, setTechAlert] = useState<TechAlert | null>(null);
   // Tech-stack fields the user has left at least once; their version check shows from then on.
   const [touched, setTouched] = useState<Set<string>>(new Set());
@@ -98,17 +98,23 @@ export default function App() {
       setErrors(sectionErrors(screens[bad].section, answers));
       return;
     }
-    const result = await api.assess(cleanAnswers);
-    if (!result.complete) {
-      // Server-side validation disagreed (e.g. an invalid value) — send the user to it.
-      const fid = Object.keys(result.errors)[0] ?? result.missing_required[0];
-      const idx = screens.findIndex((s) => s.section.fields.some((f) => f.id === fid));
-      goTo(Math.max(idx, 0));
-      setErrors({ ...result.errors, ...Object.fromEntries(result.missing_required.map((m) => [m, "This field is required"])) });
-      return;
+    // "Generate report" saves the assessment; the same project + Application ID replaces the earlier result.
+    setSubmitError(null);
+    try {
+      const { result } = await api.submit(cleanAnswers);
+      setFinalResult(result);
+      goTo(screens.length);
+    } catch (e) {
+      if (e instanceof ApiError && Object.keys(e.fieldErrors).length) {
+        // Server-side validation disagreed (e.g. an invalid value) — send the user to it.
+        const fid = Object.keys(e.fieldErrors)[0];
+        const idx = screens.findIndex((s) => s.section.fields.some((f) => f.id === fid));
+        goTo(Math.max(idx, 0));
+        setErrors(e.fieldErrors);
+      } else {
+        setSubmitError(`The report could not be saved: ${e instanceof Error ? e.message : String(e)}`);
+      }
     }
-    setFinalResult(result);
-    goTo(screens.length);
   }
 
   async function next() {
@@ -153,32 +159,10 @@ export default function App() {
   function reset() {
     setAnswers({});
     setTouched(new Set());
-    setSavedId(null);
     setFinalResult(null);
     setFurthest(0);
-    setView("assess");
+    setView("user");
     goTo(0);
-  }
-
-  async function save() {
-    try {
-      const res = savedId ? await api.update(savedId, cleanAnswers) : await api.create(cleanAnswers);
-      setSavedId(res.id);
-    } catch (e) {
-      if (e instanceof ApiError && Object.keys(e.fieldErrors).length) setErrors(e.fieldErrors);
-      throw e;
-    }
-  }
-
-  async function open(id: number) {
-    const saved = await api.get(id);
-    setAnswers(saved.answers);
-    setSavedId(saved.id);
-    setFinalResult(await api.assess(saved.answers));
-    setFurthest(screens.length);
-    setView("assess");
-    setErrors({});
-    setScreenIdx(screens.length);
   }
 
   function hintFor(fid: string): TechCheck | null {
@@ -205,7 +189,7 @@ export default function App() {
             </div>
           </div>
           <nav className="flex gap-6 self-stretch text-[15px]">
-            {(["assess", "portfolio"] as View[]).map((v) => (
+            {(["user", "admin"] as View[]).map((v) => (
               <button
                 key={v}
                 onClick={() => setView(v)}
@@ -213,7 +197,7 @@ export default function App() {
                   view === v ? "border-brand-400 text-ink" : "border-transparent text-ink-muted hover:text-ink"
                 }`}
               >
-                {v === "assess" ? "Assessment" : "Portfolio"}
+                {v === "user" ? "User" : "Admin"}
               </button>
             ))}
           </nav>
@@ -221,8 +205,8 @@ export default function App() {
       </header>
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-        {view === "portfolio" ? (
-          <Portfolio onOpen={open} onNew={reset} />
+        {view === "admin" ? (
+          <Admin />
         ) : (
           <>
             <div className="mb-6">
@@ -237,7 +221,19 @@ export default function App() {
             </div>
 
             {onResults && finalResult ? (
-              <Results result={finalResult} answers={cleanAnswers} savedId={savedId} onSave={save} onEdit={() => goTo(0)} onNew={reset} />
+              <Results
+                result={finalResult}
+                answers={cleanAnswers}
+                onEdit={() => goTo(0)}
+                onNew={reset}
+                notice={
+                  <p className="rounded border border-good/40 bg-good/10 px-4 py-2 text-sm text-ink">
+                    <span className="font-bold text-good">✓ Saved</span> — this assessment is stored under{" "}
+                    <span className="font-semibold">{finalResult.application.project}</span>. Editing and generating the report
+                    again replaces it.
+                  </p>
+                }
+              />
             ) : (
               current && (
                 <div className="grid gap-6 lg:grid-cols-[1fr_330px]">
@@ -284,6 +280,11 @@ export default function App() {
                         ))}
                     </div>
 
+                    {submitError && (
+                      <p role="alert" className="mt-6 rounded border border-warning/40 bg-warning/10 px-4 py-2 text-sm text-[#7a4700]">
+                        {submitError}
+                      </p>
+                    )}
                     {techAlert && (
                       <p role="alert" className="mt-6 text-[13px] text-[#7a4700]">
                         Please review the technology stack details highlighted above, or click Next again to continue as entered.

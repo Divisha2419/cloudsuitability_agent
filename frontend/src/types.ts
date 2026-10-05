@@ -57,7 +57,8 @@ export interface Band {
 }
 
 export interface Result {
-  application: { name: string; id: string; manager: string; date: string };
+  application: { project: string; name: string; id: string; manager: string; date: string };
+  cloud_suitability: { suitable: boolean; label: string };
   complete: boolean;
   missing_required: string[];
   errors: Record<string, string>;
@@ -104,37 +105,28 @@ export interface Result {
   six_r_definitions: Record<SixR, string>;
 }
 
-export interface Summary {
+/** One line of the Admin table. */
+export interface AdminRow {
+  s_no: number;
   id: number;
-  app_name: string;
+  project: string;
   app_id: string;
-  manager: string;
-  score: number;
-  band: Band;
-  phase1: string;
-  phase2: string;
-  phase2_overall: string;
+  app_name: string;
+  suitable: boolean;
+  suitability: string;
   recommendation: SixR;
   recommendation_headline: string;
+  /** Only set for cloud-suitable applications. */
+  score: number | null;
+  rationale: string[];
   updated_at: string;
 }
 
-export interface BatchRow {
-  row: number;
-  app_name: string;
-  errors: Record<string, string>;
-  saved_id: number | null;
-  score: number;
-  band: Band;
-  phase1: string;
-  phase2: string;
-  recommendation: SixR;
-  recommendation_headline: string;
-}
-
-export interface BatchResponse {
+export interface ProjectSummary {
+  project: string;
   total: number;
-  assessed: number;
-  ranked: BatchRow[];
-  rejected: BatchRow[];
+  suitable: number;
+  not_suitable: number;
+  six_r: Partial<Record<SixR, number>>;
+  rows: AdminRow[];
 }

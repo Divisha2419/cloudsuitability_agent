@@ -304,6 +304,16 @@ def on_premise_dependencies(answers: Answers) -> list[dict]:
     return out
 
 
+# --------------------------------------------------------------------------- cloud suitability
+
+
+def cloud_suitability(recommendation_code: str) -> dict:
+    """Cloud Suitable / Not Cloud Suitable, derived from the 6R recommendation."""
+    cfg = rubric_config()["cloud_suitability"]
+    suitable = recommendation_code in cfg["suitable"]
+    return {"suitable": suitable, "label": cfg["suitable_label"] if suitable else cfg["not_suitable_label"]}
+
+
 # --------------------------------------------------------------------------- entry point
 
 
@@ -314,8 +324,10 @@ def assess(raw_answers: dict[str, Any], assessed_on: date | None = None) -> dict
     p2 = phase2(answers)
     p3 = phase3(answers, p2)
     missing = missing_required(answers)
+    rec = recommend(answers, p1, p2, p3)
     return {
         "application": {
+            "project": answers.get("project", ""),
             "name": answers.get("app_name", ""),
             "id": answers.get("app_id", ""),
             "manager": answers.get("app_manager", ""),
@@ -328,7 +340,8 @@ def assess(raw_answers: dict[str, Any], assessed_on: date | None = None) -> dict
         "phase1": p1,
         "phase2": p2,
         "phase3": p3,
-        "recommendation": recommend(answers, p1, p2, p3),
+        "recommendation": rec,
+        "cloud_suitability": cloud_suitability(rec["code"]),
         "risks": risks(answers, p2),
         "on_premise_dependencies": on_premise_dependencies(answers),
         "additional_info": additional_info(answers),

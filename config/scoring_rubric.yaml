@@ -91,6 +91,13 @@ bands:
   - {min: 40, label: Low Cloud Readiness, level: low}
   - {min: 0, label: Very Low / Not Recommended for Cloud, level: very_low}
 
+# Cloud Suitability Result shown on the Admin page, derived from the 6R
+# recommendation. The Cloud Native Score is only shown for suitable apps.
+cloud_suitability:
+  suitable_label: Cloud Suitable
+  not_suitable_label: Not Cloud Suitable
+  suitable: [rehost, replatform, refactor, replace]   # Retire and Retain are Not Cloud Suitable
+
 phase2_overall:
   fully_ready: Fully Cloud Ready
   conditional: Conditionally Cloud Ready

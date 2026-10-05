@@ -1,16 +1,40 @@
-import type { Answers, BatchResponse, Result, Schema, Summary } from "./types";
+import type { Answers, ProjectSummary, Result, Schema } from "./types";
 
 export class ApiError extends Error {
   constructor(
     message: string,
+    public status: number,
     public fieldErrors: Record<string, string> = {},
   ) {
     super(message);
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(path, init);
+// Admin session token, kept for the browser tab so a page refresh stays logged in.
+const TOKEN_KEY = "cloudsuit-admin-token";
+
+export const adminToken = {
+  get(): string | null {
+    try {
+      return sessionStorage.getItem(TOKEN_KEY);
+    } catch {
+      return null;
+    }
+  },
+  set(token: string | null) {
+    try {
+      if (token) sessionStorage.setItem(TOKEN_KEY, token);
+      else sessionStorage.removeItem(TOKEN_KEY);
+    } catch {
+      /* storage unavailable: the login lasts until the page is reloaded */
+    }
+  },
+};
+
+async function request<T>(path: string, init: RequestInit = {}, admin = false): Promise<T> {
+  const headers = new Headers(init.headers);
+  if (admin) headers.set("Authorization", `Bearer ${adminToken.get() ?? ""}`);
+  const res = await fetch(path, { ...init, headers });
   if (!res.ok) {
     let message = `${res.status} ${res.statusText}`;
     let fieldErrors: Record<string, string> = {};
@@ -24,7 +48,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     } catch {
       /* not JSON */
     }
-    throw new ApiError(message, fieldErrors);
+    throw new ApiError(message, res.status, fieldErrors);
   }
   if (res.status === 204) return undefined as T;
   const type = res.headers.get("content-type") ?? "";
@@ -33,30 +57,31 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (await res.blob()) as T;
 }
 
-const json = (answers: Answers, method = "POST"): RequestInit => ({
+const json = (body: unknown, method = "POST"): RequestInit => ({
   method,
   headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ answers }),
+  body: JSON.stringify(body),
 });
+
+const q = (project: string) => `project=${encodeURIComponent(project)}`;
 
 export const api = {
   schema: () => request<Schema>("/api/schema"),
-  assess: (answers: Answers, signal?: AbortSignal) => request<Result>("/api/assess", { ...json(answers), signal }),
-  textReport: (answers: Answers) => request<string>("/api/report/text", json(answers)),
-  pdf: (answers: Answers) => request<Blob>("/api/report/pdf", json(answers)),
-  xlsx: (answers: Answers) => request<Blob>("/api/report/xlsx", json(answers)),
-  list: () => request<Summary[]>("/api/assessments"),
-  get: (id: number) => request<{ id: number; answers: Answers; result: Result }>(`/api/assessments/${id}`),
-  create: (answers: Answers) => request<{ id: number; summary: Summary }>("/api/assessments", json(answers)),
-  update: (id: number, answers: Answers) =>
-    request<{ id: number; summary: Summary }>(`/api/assessments/${id}`, json(answers, "PUT")),
-  remove: (id: number) => request<void>(`/api/assessments/${id}`, { method: "DELETE" }),
-  portfolioXlsx: () => request<Blob>("/api/portfolio/export.xlsx"),
-  batchTemplate: () => request<Blob>("/api/batch/template.xlsx"),
-  batch: (file: File) => {
-    const form = new FormData();
-    form.append("file", file);
-    return request<BatchResponse>("/api/batch", { method: "POST", body: form });
+  assess: (answers: Answers, signal?: AbortSignal) => request<Result>("/api/assess", { ...json({ answers }), signal }),
+  textReport: (answers: Answers) => request<string>("/api/report/text", json({ answers })),
+  pdf: (answers: Answers) => request<Blob>("/api/report/pdf", json({ answers })),
+  xlsx: (answers: Answers) => request<Blob>("/api/report/xlsx", json({ answers })),
+  /** Save a completed assessment (replaces an earlier one with the same project + Application ID). */
+  submit: (answers: Answers) => request<{ id: number; result: Result }>("/api/assessments", json({ answers })),
+
+  admin: {
+    login: (username: string, password: string) => request<{ token: string }>("/api/admin/login", json({ username, password })),
+    logout: () => request<void>("/api/admin/logout", { method: "POST" }, true),
+    projects: () => request<{ name: string; count: number }[]>("/api/admin/projects", {}, true),
+    project: (project: string) => request<ProjectSummary>(`/api/admin/assessments?${q(project)}`, {}, true),
+    get: (id: number) => request<{ id: number; answers: Answers; result: Result }>(`/api/admin/assessments/${id}`, {}, true),
+    remove: (id: number) => request<void>(`/api/admin/assessments/${id}`, { method: "DELETE" }, true),
+    exportXlsx: (project: string) => request<Blob>(`/api/admin/export.xlsx?${q(project)}`, {}, true),
   },
 };
 

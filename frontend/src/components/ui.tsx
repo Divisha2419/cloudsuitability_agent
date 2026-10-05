@@ -23,7 +23,7 @@ export const SIX_R_STYLE: Record<SixR, string> = {
 export function RatingPill({ rating, label }: { rating: Rating; label: string }) {
   const s = RATING_STYLE[rating];
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ${s.cls}`}>
+    <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ${s.cls}`}>
       <span aria-hidden className="font-bold">
         {s.icon}
       </span>

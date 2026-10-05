@@ -21,9 +21,20 @@ def _load(name: str) -> dict:
 
 
 @lru_cache
+def projects() -> list[str]:
+    """Project / client names from config/projects.yaml."""
+    return [str(p) for p in (_load("projects.yaml").get("projects") or [])]
+
+
+@lru_cache
 def attributes_config() -> dict:
-    """attributes.yaml, with an "Additional Information" box appended to each section when enabled."""
+    """attributes.yaml, with dropdowns filled from other config files (options_from)
+    and an "Additional Information" box appended to each section when enabled."""
     config = _load("attributes.yaml")
+    for section in config["sections"]:
+        for field in section["fields"]:
+            if field.get("options_from") == "projects":
+                field["options"] = [{"value": p, "label": p} for p in projects()]
     extra = config.get("additional_info") or {}
     if extra.get("enabled"):
         excluded = set(extra.get("exclude_sections") or [])
