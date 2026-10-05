@@ -29,7 +29,6 @@ export default function Results({ result, answers, onBack, onEdit, onNew, notice
   const { application: app, phase1, phase2, phase3, recommendation: rec, risks } = result;
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [report, setReport] = useState<string | null>(null);
 
   async function run(label: string, fn: () => Promise<void>) {
     setBusy(label);
@@ -262,16 +261,6 @@ export default function Results({ result, answers, onBack, onEdit, onNew, notice
             </div>
           ))}
         </dl>
-      </Card>
-
-      <Card title="Text report">
-        {report ? (
-          <pre className="overflow-x-auto rounded-lg bg-slate-900 p-4 font-mono text-xs leading-relaxed text-slate-100">{report}</pre>
-        ) : (
-          <Button variant="secondary" disabled={!!busy} onClick={() => run("text", async () => setReport(await api.textReport(answers)))}>
-            Show report in the agent's text format
-          </Button>
-        )}
       </Card>
     </div>
   );

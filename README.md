@@ -46,7 +46,7 @@ To show the official logo at the top left, put the file in `config/branding/` as
 ## User and Admin
 
 - **User**: fill in the assessment. Clicking **Generate report** saves it under the chosen Project / Client. Assessing the same Application ID again in the same project replaces the earlier result.
-- **Admin**: log in (default username `admin`, password `admin`, set in `config/admin.yaml`), select a project and see a summary chart plus a table of all its applications. Click an application to open its full report. Applications can be deleted and the table exported to Excel.
+- **Admin**: log in (default username `admin`, password `admin`, set in `config/admin.yaml`), select a project and see a summary chart plus a table of all its applications. Click an application to open its full report. Applications can be deleted and the table exported to Excel. Projects with more than 5 applications also get a provisional migration wave roadmap; the wave rules and timeframes are in `config/migration_waves.yaml`.
 
 ## Projects
 

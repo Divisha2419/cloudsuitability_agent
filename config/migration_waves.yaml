@@ -1,0 +1,38 @@
+# Provisional cloud migration wave roadmap shown on the Admin page, below the
+# applications table, when a project has more than `min_applications - 1`
+# applications. Each application goes into the FIRST wave whose rule matches
+# its 6R recommendation and business criticality (omit `criticality` to match
+# any). Applications matching no wave are listed under `out_of_scope`.
+# Edit freely; restart the app afterwards.
+
+min_applications: 6   # show the roadmap only for projects with more than 5 applications
+
+waves:
+  - name: Wave 1 – Quick wins
+    timeframe: Months 1–3
+    description: Lift & shift of low and medium business-criticality applications to build migration experience with limited risk.
+    match:
+      recommendation: [rehost]
+      criticality: [Low, Medium]
+  - name: Wave 2 – Core migration
+    timeframe: Months 4–8
+    description: Replatforming, and lift & shift of business-critical applications, once the landing zone and runbooks are proven.
+    match:
+      recommendation: [replatform, rehost]
+  - name: Wave 3 – SaaS replacement
+    timeframe: Months 6–12
+    description: Replace COTS applications with the vendor's SaaS offering, aligned with licence and support renewals.
+    match:
+      recommendation: [replace]
+  - name: Wave 4 – Modernisation
+    timeframe: Months 9–18
+    description: Re-architect applications to be cloud-native before migration; longest lead time.
+    match:
+      recommendation: [refactor]
+
+out_of_scope:
+  name: Not in migration scope
+  description: Retained on-premise (or at the edge) or to be retired; review at the next roadmap cycle.
+
+# Order within a wave: lower business criticality first.
+criticality_order: [Low, Medium, High, Mission Critical]

@@ -229,8 +229,7 @@ export default function App() {
                 notice={
                   <p className="rounded border border-good/40 bg-good/10 px-4 py-2 text-sm text-ink">
                     <span className="font-bold text-good">✓ Saved</span> — this assessment is stored under{" "}
-                    <span className="font-semibold">{finalResult.application.project}</span>. Editing and generating the report
-                    again replaces it.
+                    <span className="font-semibold">{finalResult.application.project}</span>.
                   </p>
                 }
               />

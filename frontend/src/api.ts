@@ -68,7 +68,6 @@ const q = (project: string) => `project=${encodeURIComponent(project)}`;
 export const api = {
   schema: () => request<Schema>("/api/schema"),
   assess: (answers: Answers, signal?: AbortSignal) => request<Result>("/api/assess", { ...json({ answers }), signal }),
-  textReport: (answers: Answers) => request<string>("/api/report/text", json({ answers })),
   pdf: (answers: Answers) => request<Blob>("/api/report/pdf", json({ answers })),
   xlsx: (answers: Answers) => request<Blob>("/api/report/xlsx", json({ answers })),
   /** Save a completed assessment (replaces an earlier one with the same project + Application ID). */

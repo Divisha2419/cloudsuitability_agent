@@ -25,7 +25,7 @@ export default function FieldInput({ field, value, error, hint, onChange, onBlur
     <div className={field.additional ? "border-t border-ink-line pt-6" : ""}>
       <div className="flex flex-wrap items-center gap-2">
         <label
-          htmlFor={field.type === "select" ? undefined : inputId}
+          htmlFor={field.type === "select" && field.widget !== "dropdown" ? undefined : inputId}
           id={`${inputId}-label`}
           className="text-[15px] font-semibold text-ink"
         >
@@ -47,7 +47,25 @@ export default function FieldInput({ field, value, error, hint, onChange, onBlur
         </p>
       )}
 
-      {field.type === "select" && (
+      {field.type === "select" && field.widget === "dropdown" && (
+        <select
+          id={inputId}
+          value={value}
+          aria-invalid={flagged}
+          aria-describedby={describedBy}
+          onChange={(e) => onChange(e.target.value)}
+          className={`${base} ${border} max-w-md`}
+        >
+          <option value="">Select…</option>
+          {field.options!.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      )}
+
+      {field.type === "select" && field.widget !== "dropdown" && (
         <div role="radiogroup" aria-labelledby={`${inputId}-label`} aria-describedby={describedBy} className="flex flex-wrap gap-2">
           {field.options!.map((opt) => {
             const selected = value === opt.value;

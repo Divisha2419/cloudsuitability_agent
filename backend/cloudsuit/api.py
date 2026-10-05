@@ -18,7 +18,7 @@ from fastapi.responses import FileResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import auth, exports
+from . import auth, exports, waves
 from .engine import assess
 from .report import text_report
 from .schema import CONFIG_DIR, REPO_ROOT, attributes_config, projects, validate
@@ -165,6 +165,7 @@ def admin_assessments(project: str) -> dict:
         "not_suitable": len(rows) - suitable,
         "six_r": six_r,
         "rows": rows,
+        "roadmap": waves.roadmap(rows),
     }
 
 
@@ -187,7 +188,8 @@ def admin_delete(assessment_id: int) -> Response:
 @app.get("/api/admin/export.xlsx", dependencies=[Depends(auth.require_admin)])
 def admin_export(project: str) -> Response:
     rows = _project_rows(project)
-    return _download(exports.project_xlsx(project, rows), XLSX, f"cloud_suitability_{_slug(project)}.xlsx")
+    content = exports.project_xlsx(project, rows, waves.roadmap(rows))
+    return _download(content, XLSX, f"cloud_suitability_{_slug(project)}.xlsx")
 
 
 # --------------------------------------------------------------------------- branding

@@ -19,6 +19,8 @@ export interface Field {
   origin?: "instructions" | "added";
   /** Auto-generated "Additional Information" box (not counted in Data Completeness). */
   additional?: boolean;
+  /** For select fields: "dropdown" renders a dropdown list instead of option buttons. */
+  widget?: "dropdown";
 }
 
 export interface TechCheck {
@@ -119,6 +121,7 @@ export interface AdminRow {
   /** Only set for cloud-suitable applications. */
   score: number | null;
   rationale: string[];
+  criticality: string;
   updated_at: string;
 }
 
@@ -129,4 +132,28 @@ export interface ProjectSummary {
   not_suitable: number;
   six_r: Partial<Record<SixR, number>>;
   rows: AdminRow[];
+  /** Provisional wave plan; null when the project has too few applications. */
+  roadmap: Roadmap | null;
+}
+
+export interface RoadmapApp {
+  id: number;
+  app_id: string;
+  app_name: string;
+  recommendation: SixR;
+  recommendation_headline: string;
+  criticality: string;
+  score: number | null;
+}
+
+export interface Wave {
+  name: string;
+  timeframe?: string;
+  description: string;
+  applications: RoadmapApp[];
+}
+
+export interface Roadmap {
+  waves: Wave[];
+  out_of_scope: Wave;
 }

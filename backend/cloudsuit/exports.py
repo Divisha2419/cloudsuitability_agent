@@ -104,8 +104,8 @@ PROJECT_COLUMNS = ["S.No", "Application ID", "Application Name", "Cloud Suitabil
                    "Cloud Native Score", "Rationale"]
 
 
-def project_xlsx(project: str, rows: list[dict]) -> bytes:
-    """The Admin page table for one project, plus a summary sheet."""
+def project_xlsx(project: str, rows: list[dict], roadmap: dict | None = None) -> bytes:
+    """The Admin page table for one project, a summary sheet and (if any) the wave roadmap."""
     wb = Workbook()
     ws = wb.active
     ws.title = "Applications"
@@ -129,6 +129,15 @@ def project_xlsx(project: str, rows: list[dict]) -> bytes:
     for k, v in sorted(counts.items(), key=lambda kv: -kv[1]):
         ws.append([f"6R: {k}", v])
     _autosize(ws)
+
+    if roadmap:
+        ws = wb.create_sheet("Wave Roadmap (provisional)")
+        _header(ws, ["Wave", "Timeframe", "Application ID", "Application Name", "6R", "Business Criticality"])
+        for wave in [*roadmap["waves"], roadmap["out_of_scope"]]:
+            for a in wave["applications"]:
+                ws.append([wave["name"], wave.get("timeframe", ""), a["app_id"], a["app_name"],
+                           a["recommendation_headline"], a["criticality"]])
+        _autosize(ws)
     return _to_bytes(wb)
 
 

@@ -136,3 +136,28 @@ def test_logo_404_without_file_and_served_with_file(client, tmp_path, monkeypatc
     r = client.get("/api/branding/logo")
     assert r.status_code == 200 and r.headers["content-type"].startswith("image/svg+xml")
     assert client.get("/api/branding").json() == {"logo_url": "/api/branding/logo"}
+
+
+def test_wave_roadmap_only_above_five_applications(client, admin, answers):
+    def submit(app_id, **over):
+        client.post("/api/assessments", json={"answers": {**answers, "app_id": app_id, "app_name": app_id, **over}})
+
+    for i in range(5):
+        submit(f"A{i}")
+    data = client.get("/api/admin/assessments", params={"project": "ABB Edge China"}, headers=admin).json()
+    assert data["total"] == 5 and data["roadmap"] is None
+
+    # A0–A4: rehost, High criticality (business critical) -> Wave 2
+    submit("LOW", business_criticality="Low")                                   # rehost, low -> Wave 1
+    submit("RPL", business_criticality="Low", operating_system="Windows Server 2012")  # replatform -> Wave 2
+    submit("RET", latency="Ultra Low")                                          # retain -> out of scope
+    roadmap = client.get("/api/admin/assessments", params={"project": "ABB Edge China"}, headers=admin).json()["roadmap"]
+    by_wave = {w["name"]: [a["app_id"] for a in w["applications"]] for w in roadmap["waves"]}
+    assert by_wave["Wave 1 – Quick wins"] == ["LOW"]
+    assert by_wave["Wave 2 – Core migration"][0] == "RPL"  # Low criticality before High
+    assert set(by_wave["Wave 2 – Core migration"]) == {"RPL", "A0", "A1", "A2", "A3", "A4"}
+    assert [a["app_id"] for a in roadmap["out_of_scope"]["applications"]] == ["RET"]
+    assert "Wave 3 – SaaS replacement" not in by_wave  # empty waves are left out
+
+    wb = load_workbook(io.BytesIO(client.get("/api/admin/export.xlsx", params={"project": "ABB Edge China"}, headers=admin).content))
+    assert "Wave Roadmap (provisional)" in wb.sheetnames

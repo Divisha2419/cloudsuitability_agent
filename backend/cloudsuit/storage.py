@@ -58,6 +58,7 @@ class Assessment(Base):
             # The score is only reported for cloud-suitable applications.
             "score": r["phase3"]["total"] if suitability["suitable"] else None,
             "rationale": rec["rationale"][:3],
+            "criticality": (self.answers or {}).get("business_criticality", ""),
             "updated_at": self.updated_at.isoformat(),
         }
 

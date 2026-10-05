@@ -59,6 +59,7 @@ sections:
         help: The engagement this application belongs to. The list comes from config/projects.yaml.
         origin: instructions
         options_from: projects   # options are filled from config/projects.yaml
+        widget: dropdown         # show as a dropdown list instead of option buttons
       - id: app_name
         label: Application Name
         type: text

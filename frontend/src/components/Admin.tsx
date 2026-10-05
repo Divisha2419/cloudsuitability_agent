@@ -1,6 +1,6 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { ApiError, adminToken, api, download, slug } from "../api";
-import type { AdminRow, Answers, ProjectSummary, Result, SixR } from "../types";
+import type { AdminRow, Answers, ProjectSummary, Result, Roadmap, SixR, Wave } from "../types";
 import Results from "./Results";
 import { Button, Card, RatingPill, SIX_R_STYLE, SixRBadge } from "./ui";
 
@@ -122,7 +122,7 @@ function Portal({ onLogout, onSessionExpired }: { onLogout: () => void; onSessio
     if (name) api.admin.project(name).then(setSummary).catch(handle);
   }
 
-  async function open(row: AdminRow) {
+  async function open(row: { id: number }) {
     try {
       const d = await api.admin.get(row.id);
       setDetail({ result: d.result, answers: d.answers });
@@ -205,6 +205,11 @@ function Portal({ onLogout, onSessionExpired }: { onLogout: () => void; onSessio
         <>
           <SummaryCard summary={summary} />
           <ApplicationsTable rows={summary.rows} onOpen={open} onDelete={remove} />
+          {summary.roadmap ? (
+            <WaveRoadmap roadmap={summary.roadmap} onOpen={open} />
+          ) : (
+            <p className="text-xs text-ink-muted">A provisional migration wave roadmap is shown once more than 5 applications are assessed in a project.</p>
+          )}
         </>
       )}
     </div>
@@ -374,5 +379,69 @@ function ApplicationsTable({ rows, onOpen, onDelete }: { rows: AdminRow[]; onOpe
       </div>
       <p className="px-4 py-2 text-xs text-ink-muted">Click an application to open its full report.</p>
     </section>
+  );
+}
+
+// --------------------------------------------------------------------------- wave roadmap
+
+function WaveRoadmap({ roadmap, onOpen }: { roadmap: Roadmap; onOpen: (a: { id: number }) => void }) {
+  const out = roadmap.out_of_scope;
+  return (
+    <Card title="Provisional cloud migration wave roadmap">
+      <p className="mb-5 text-[13px] text-ink-muted">
+        Waves are derived from each application's 6R recommendation and business criticality (configured in
+        config/migration_waves.yaml). Validate dependencies, change freezes and landing-zone readiness with the client before
+        committing dates.
+      </p>
+      <div className="overflow-x-auto pb-1">
+        <ol className="flex gap-3">
+          {roadmap.waves.map((w, i) => (
+            <WaveColumn key={w.name} wave={w} step={i + 1} onOpen={onOpen} />
+          ))}
+          {out.applications.length > 0 && <WaveColumn wave={out} onOpen={onOpen} muted />}
+        </ol>
+      </div>
+    </Card>
+  );
+}
+
+function WaveColumn({ wave, step, muted = false, onOpen }: { wave: Wave; step?: number; muted?: boolean; onOpen: (a: { id: number }) => void }) {
+  return (
+    <li className={`flex min-w-[190px] flex-1 basis-0 flex-col rounded-md border ${muted ? "border-dashed border-ink-line bg-slate-50" : "border-ink-line bg-white"}`}>
+      <div className={`rounded-t-md px-4 py-3 ${muted ? "bg-slate-100" : "bg-brand-50"}`}>
+        <div className="flex items-center gap-2">
+          {step !== undefined && (
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-700 text-xs font-bold text-white">{step}</span>
+          )}
+          <h4 className={`text-[14px] font-bold leading-tight ${muted ? "text-ink-muted" : "text-ink"}`}>{wave.name}</h4>
+        </div>
+        {wave.timeframe && <p className="mt-1 text-xs font-semibold text-brand-700">{wave.timeframe}</p>}
+        <p className="mt-1 text-xs leading-snug text-ink-muted">{wave.description}</p>
+        <p className="mt-2 text-xs font-semibold text-ink">
+          {wave.applications.length} application{wave.applications.length === 1 ? "" : "s"}
+        </p>
+      </div>
+      <ul className="space-y-2 p-3">
+        {wave.applications.map((a) => (
+          <li key={a.id}>
+            <button
+              type="button"
+              onClick={() => onOpen(a)}
+              className="w-full rounded border border-ink-line bg-white px-3 py-2 text-left transition hover:border-brand-600 hover:bg-brand-50"
+              title="Open the full report"
+            >
+              <span className="block text-[13px] font-semibold text-ink">
+                {a.app_id ? `${a.app_id} · ` : ""}
+                {a.app_name}
+              </span>
+              <span className="mt-1 flex flex-wrap items-center gap-2">
+                <SixRBadge code={a.recommendation} headline={SIX_R_LABEL[a.recommendation]} />
+                <span className="text-[11px] text-ink-muted">{a.criticality || "Criticality n/a"}</span>
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </li>
   );
 }
